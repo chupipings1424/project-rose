@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff3d7f"/>
+      <stop offset="1" stop-color="#ffb3c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#14040b"/>
+  <g stroke="url(#g)" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M32 45.5c-1.2 5 1 8.6 0 15.5" stroke-width="2.6"/>
+    <path d="M32.3 53.2c3.6-4.4 8.9-5.6 13.7-5.2-2.3 4.8-7.3 7.6-13.6 7.1z" fill="url(#g)" fill-opacity=".35" stroke-width="1.6"/>
+    <path d="M31.4 57.6 27 56.2l4.5-1.4z" fill="url(#g)" stroke-width="1"/>
+    <rect x="17.50" y="10.50" width="29" height="29" rx="4.64" transform="rotate(45 32 25)" fill="url(#g)" fill-opacity="0.06" stroke-width="2.4"/>
+    <rect x="20.55" y="13.55" width="22.9" height="22.9" rx="3.66" transform="rotate(63 32 25)" fill="url(#g)" fill-opacity="0.12" stroke-width="2.4"/>
+    <rect x="22.95" y="15.95" width="18.1" height="18.1" rx="2.90" transform="rotate(81 32 25)" fill="url(#g)" fill-opacity="0.2" stroke-width="1.9"/>
+    <rect x="24.85" y="17.85" width="14.3" height="14.3" rx="2.29" transform="rotate(99 32 25)" fill="url(#g)" fill-opacity="0.3" stroke-width="1.9"/>
+    <rect x="26.35" y="19.35" width="11.3" height="11.3" rx="1.81" transform="rotate(117 32 25)" fill="url(#g)" fill-opacity="0.45" stroke-width="1.9"/>
+    <rect x="27.55" y="20.55" width="8.9" height="8.9" rx="1.42" transform="rotate(135 32 25)" fill="url(#g)" fill-opacity="0.7" stroke-width="1.9"/>
+  </g>
+</svg>

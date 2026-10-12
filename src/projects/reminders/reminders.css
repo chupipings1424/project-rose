@@ -1,0 +1,118 @@
+/* Reminders (Project 02). Reuses the global card / form / badge styles. */
+.reminders {
+  display: grid;
+  gap: 1.25rem;
+}
+.reminders .tracker-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.reminders .tracker-title {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+}
+
+.push-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem 1.5rem;
+}
+.push-card-text {
+  flex: 1 1 260px;
+}
+.push-card-text p {
+  margin: 0.3rem 0 0;
+}
+.push-card.is-on {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+.push-card.is-denied,
+.push-card.is-insecure {
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+}
+
+.day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.chip {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.chip.is-on {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.rem-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.rem-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.rem-item.is-ringing {
+  border-color: var(--danger);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--danger) 35%, transparent);
+}
+.rem-item.is-overdue {
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+}
+.rem-item.is-done .rem-text {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.rem-main {
+  flex: 1 1 220px;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.rem-text {
+  overflow-wrap: anywhere;
+}
+.rem-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.rem-snooze select {
+  padding: 0.4rem 0.6rem;
+}
+.rem-toggle {
+  all: unset;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.rem-toggle:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 4px;
+}
+.rem-toggle .section-title {
+  margin: 0;
+}

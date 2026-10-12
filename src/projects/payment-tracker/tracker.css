@@ -1,0 +1,414 @@
+/* Styles that only the Payment Tracker module needs. Loaded lazily with it. */
+
+.tracker-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.tracker-title {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+}
+.subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  margin-left: auto;
+}
+
+/* toolbar card at the top of each page */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.toolbar-field {
+  flex: 1 1 280px;
+  max-width: 460px;
+}
+.toolbar-field.inline {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* a select with a small action button (e.g. delete) beside it */
+.field-with-action {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+.field-with-action > label {
+  flex: 1;
+}
+.toolbar-field.inline.field-with-action {
+  align-items: center;
+}
+.toolbar-field.inline.field-with-action > label {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+}
+.btn.icon-danger {
+  padding: 0.55rem 0.65rem;
+  background: transparent;
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+.btn.icon-danger:hover:not(:disabled) {
+  color: #fff;
+  background: var(--danger);
+  border-color: var(--danger);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--danger) 55%, transparent);
+}
+
+/* account summary */
+.summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.summary-head h2 {
+  font-size: 1.5rem;
+}
+.table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.table-head .section-title {
+  margin: 0;
+}
+.plan-preview {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-strong);
+  font-size: 0.85rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent-2) 8%, transparent);
+}
+
+.pill {
+  font: 600 0.75rem var(--font-body);
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid currentColor;
+  background: transparent;
+}
+.pill-paid {
+  color: var(--ok);
+}
+.pill-unpaid {
+  color: var(--warn);
+}
+.row-unpaid td {
+  color: var(--muted);
+}
+.row-overdue td {
+  color: var(--danger);
+}
+
+/* overview */
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+.entry-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+.entry-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+  box-shadow: var(--glow);
+}
+.entry-card h2 {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+}
+.entry-card p {
+  margin: 0;
+}
+.entry-wide {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.25rem;
+}
+.entry-wide .entry-go {
+  margin-left: auto;
+}
+.entry-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  font-size: 1.3rem;
+  color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.entry-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.entry-go {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+.workbook-path {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* budget grid */
+.budget-section {
+  padding: 0;
+  overflow: hidden;
+}
+.budget-section .table-wrap {
+  padding: 0 0.5rem 0.5rem;
+}
+.section-banner {
+  padding: 0.7rem 1.25rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.22em;
+  color: var(--on-accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.banner-revenue {
+  background: linear-gradient(90deg, var(--ok), var(--accent-2));
+}
+.banner-expense {
+  background: linear-gradient(90deg, var(--accent), var(--warn));
+}
+.budget-table th,
+.budget-table td {
+  padding: 0.35rem 0.4rem;
+  font-size: 0.82rem;
+}
+.budget-table .group-row th {
+  padding-top: 1rem;
+  color: var(--accent-2);
+}
+.budget-table .subtotal-row td {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.item-cell {
+  min-width: 150px;
+  font-weight: 500;
+}
+.actions-col {
+  width: 70px;
+  text-align: right;
+}
+.cell {
+  width: 92px;
+  padding: 0.3rem 0.4rem;
+  text-align: right;
+  font-size: 0.82rem;
+  background: transparent;
+  border-color: transparent;
+}
+.cell:hover {
+  border-color: var(--border);
+}
+.cell:focus {
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+/* import */
+.import-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.import-ok {
+  margin: 0;
+  color: var(--ok);
+  font-weight: 600;
+}
+.import-table {
+  max-height: 300px;
+  overflow: auto;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.chip-add {
+  color: var(--ok);
+}
+.chip-replace {
+  color: var(--accent-2);
+}
+.chip-skip {
+  color: var(--muted);
+}
+.chip-error {
+  color: var(--danger);
+}
+
+/* report */
+.report-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.report-head h2 {
+  font-size: clamp(1.2rem, 3vw, 1.7rem);
+}
+.report-head p {
+  margin: 0.3rem 0 0;
+}
+.kpi-grid {
+  margin: 0;
+}
+.chart-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+.chart-head {
+  margin-bottom: 0.75rem;
+}
+.chart-head .section-title {
+  margin-bottom: 0.2rem;
+}
+.chart-head p {
+  margin: 0;
+}
+.donut-wrap {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+.donut {
+  position: relative;
+}
+.donut-centre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.donut-centre strong {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+}
+.donut-centre span {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+.legend-list li {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.title-progress {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.title-progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 1rem;
+}
+.title-progress-pct {
+  margin-left: auto;
+  font-family: var(--font-display);
+  color: var(--accent-2);
+}
+/* Recharts text inherits our theme colours */
+.recharts-legend-item-text {
+  color: var(--muted) !important;
+}
+.recharts-default-tooltip .recharts-tooltip-label {
+  color: var(--text);
+}
+
+@media (max-width: 900px) {
+  .entry-grid,
+  .chart-row,
+  .donut-wrap {
+    grid-template-columns: 1fr;
+  }
+  .entry-wide {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .entry-wide .entry-go {
+    margin-left: 0;
+  }
+  .subnav {
+    margin-left: 0;
+  }
+}

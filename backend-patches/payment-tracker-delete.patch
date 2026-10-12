@@ -1,0 +1,253 @@
+diff --git a/app.py b/app.py
+index 3123fc5..9e5e78c 100644
+--- a/app.py
++++ b/app.py
+@@ -396,6 +396,14 @@ def api_delete_payment(payment_id):
+     return jsonify({"ok": True})
+ 
+ 
++@app.delete("/api/accounts/<path:title>")
++def api_delete_account(title):
++    removed = db.delete_account(title)
++    if removed is None:
++        return jsonify({"error": "Title not found."}), 404
++    return jsonify({"ok": True, "deleted_payments": removed, "accounts": db.read_accounts()})
++
++
+ @app.get("/budget")
+ def budget_page():
+     return app.send_static_file("budget.html")
+@@ -453,6 +461,15 @@ def api_delete_budget_line(line_id):
+     return jsonify({"ok": True, "budget": budget.read_budget(request.args.get("year"))})
+ 
+ 
++@app.delete("/api/budget/years/<int:year>")
++def api_delete_budget_year(year):
++    removed = budget.delete_year(year)
++    if not removed:
++        return jsonify({"error": f"No budget lines found for {year}."}), 404
++    # Fall back to the current year, which always exists (possibly empty).
++    return jsonify({"ok": True, "deleted": removed, "budget": budget.read_budget()})
++
++
+ @app.post("/api/budget/copy-year")
+ def api_copy_budget_year():
+     data = request.get_json(force=True) or {}
+diff --git a/budget_db.py b/budget_db.py
+index a315a67..225f280 100644
+--- a/budget_db.py
++++ b/budget_db.py
+@@ -474,6 +474,27 @@ def delete_line(line_id, path=WORKBOOK_PATH):
+     return False
+ 
+ 
++def delete_year(year, path=WORKBOOK_PATH):
++    """Delete every budget line for `year` in one save; returns how many were removed."""
++    year = _to_int(year, 0)
++    if year <= 0:
++        raise ValueError("A valid year is required.")
++    wb = load(path)
++    ws = _ensure_sheet(wb)
++    rows = []
++    for row in ws.iter_rows(min_row=2):
++        line = _row_to_line(tuple(cell.value for cell in row))
++        # Match on the parsed year so blank-year rows (shown as the current year) are included.
++        if line is not None and line["year"] == year:
++            rows.append(row[COL_ID - 1].row)
++    if not rows:
++        return 0
++    for row_number in reversed(rows):
++        ws.delete_rows(row_number, 1)
++    _commit(wb, path, year)
++    return len(rows)
++
++
+ def copy_year(source_year, target_year, include_amounts=False, path=WORKBOOK_PATH):
+     """Clone a year's line items (optionally with their amounts) into a new year."""
+     source_year = _to_int(source_year, 0)
+diff --git a/excel_db.py b/excel_db.py
+index 9d4ae4a..df95d87 100644
+--- a/excel_db.py
++++ b/excel_db.py
+@@ -452,6 +452,38 @@ def delete_payment(payment_id, path=WORKBOOK_PATH):
+     return False
+ 
+ 
++def _delete_matching_rows(ws, column_index, title_key):
++    """Delete every data row whose cell in `column_index` matches the title (case-insensitive).
++
++    Rows are removed bottom-up so earlier row numbers stay valid.
++    """
++    rows = [
++        row[column_index].row
++        for row in ws.iter_rows(min_row=2)
++        if row[column_index].value is not None
++        and str(row[column_index].value).strip().lower() == title_key
++    ]
++    for row_number in reversed(rows):
++        ws.delete_rows(row_number, 1)
++    return len(rows)
++
++
++def delete_account(title, path=WORKBOOK_PATH):
++    """Delete a title and every payment recorded under it, in one save.
++
++    Returns the number of payments removed, or None when the title does not exist.
++    """
++    title_key = (title or "").strip().lower()
++    if not title_key:
++        return None
++    wb = load(path)
++    if not _delete_matching_rows(wb[ACCOUNTS_SHEET], 0, title_key):
++        return None
++    removed_payments = _delete_matching_rows(wb[PAYMENTS_SHEET], 1, title_key)
++    _save(wb, path)
++    return removed_payments
++
++
+ # --------------------------------------------------------------------------- #
+ # summary
+ # --------------------------------------------------------------------------- #
+diff --git a/test_delete.py b/test_delete.py
+new file mode 100644
+index 0000000..8540e10
+--- /dev/null
++++ b/test_delete.py
+@@ -0,0 +1,137 @@
++"""Tests for deleting a whole title and a whole budget year.
++
++    python -m unittest test_delete -v
++
++Every test uses a temp workbook, never the real payments.xlsx.
++"""
++
++from __future__ import annotations
++
++import inspect
++import os
++import tempfile
++import unittest
++from unittest import mock
++from datetime import date
++
++from openpyxl import load_workbook
++
++import budget_db as budget
++import excel_db as db
++
++
++def _default_path(fn, path):
++    """Wrap `fn` so it uses `path` unless the caller passed one explicitly."""
++    signature = inspect.signature(fn)
++
++    def wrapper(*args, **kwargs):
++        bound = signature.bind_partial(*args, **kwargs)
++        bound.arguments.setdefault("path", path)
++        return fn(*bound.args, **bound.kwargs)
++
++    return wrapper
++
++
++class TempWorkbookTestCase(unittest.TestCase):
++    def setUp(self):
++        handle, self.path = tempfile.mkstemp(suffix=".xlsx")
++        os.close(handle)
++        os.remove(self.path)
++        db.create_workbook(self.path)
++
++    def tearDown(self):
++        if os.path.exists(self.path):
++            os.remove(self.path)
++
++    def plan(self, title, instalments=3):
++        db.create_account_with_schedule(
++            title=title,
++            amount=300,
++            instalments=instalments,
++            frequency="Monthly",
++            start_date=date(2026, 1, 1),
++            amount_mode="total",
++            path=self.path,
++        )
++
++
++class DeleteAccountTests(TempWorkbookTestCase):
++    def test_removes_title_and_all_its_payments_only(self):
++        self.plan("Car Loan", 3)
++        self.plan("Phone", 2)
++        db.add_payment("Car Loan", 50, date(2026, 2, 1), "9:00am", path=self.path)
++
++        removed = db.delete_account("car loan", self.path)  # case-insensitive
++
++        self.assertEqual(removed, 4)
++        self.assertEqual([a["title"] for a in db.read_accounts(self.path)], ["Phone"])
++        self.assertEqual(db.read_payments("Car Loan", self.path), [])
++        self.assertEqual(len(db.read_payments("Phone", self.path)), 2)
++
++    def test_missing_title_returns_none_and_changes_nothing(self):
++        self.plan("Phone", 2)
++        self.assertIsNone(db.delete_account("Nope", self.path))
++        self.assertIsNone(db.delete_account("  ", self.path))
++        self.assertEqual(len(db.read_payments(path=self.path)), 2)
++
++
++class DeleteYearTests(TempWorkbookTestCase):
++    def add(self, item, year):
++        return budget.add_line("Expense", "Home", item, year, [10] * 12, path=self.path)
++
++    def test_removes_only_that_year_and_its_report_sheet(self):
++        self.add("Rent", 2024)
++        self.add("Power", 2024)
++        self.add("Rent", 2025)
++
++        self.assertEqual(budget.delete_year(2024, self.path), 2)
++
++        self.assertNotIn(2024, budget.list_years(self.path))
++        self.assertEqual(budget.read_budget(2025, self.path)["line_count"], 1)
++        sheets = load_workbook(self.path).sheetnames
++        self.assertNotIn("Budget 2024", sheets)
++        self.assertIn("Budget 2025", sheets)
++
++    def test_empty_year_returns_zero(self):
++        self.add("Rent", 2025)
++        self.assertEqual(budget.delete_year(2030, self.path), 0)
++        self.assertEqual(budget.read_budget(2025, self.path)["line_count"], 1)
++
++    def test_invalid_year_raises(self):
++        with self.assertRaises(ValueError):
++            budget.delete_year("abc", self.path)
++
++
++class DeleteEndpointTests(TempWorkbookTestCase):
++    def setUp(self):
++        super().setUp()
++        import app as app_module
++
++        # Route the HTTP layer's storage calls to the temp workbook.
++        targets = [(db, "delete_account"), (db, "read_accounts"), (budget, "delete_year"), (budget, "read_budget")]
++        for module, name in targets:
++            patcher = mock.patch.object(module, name, _default_path(getattr(module, name), self.path))
++            patcher.start()
++            self.addCleanup(patcher.stop)
++        self.client = app_module.app.test_client()
++
++    def test_delete_account_endpoint(self):
++        self.plan("Car Loan", 2)
++        response = self.client.delete("/api/accounts/Car%20Loan")
++        self.assertEqual(response.status_code, 200)
++        self.assertEqual(response.get_json()["deleted_payments"], 2)
++        self.assertEqual(response.get_json()["accounts"], [])
++        self.assertEqual(self.client.delete("/api/accounts/Car%20Loan").status_code, 404)
++
++    def test_delete_year_endpoint(self):
++        budget.add_line("Expense", "Home", "Rent", 2024, [10] * 12, path=self.path)
++        response = self.client.delete("/api/budget/years/2024")
++        self.assertEqual(response.status_code, 200)
++        body = response.get_json()
++        self.assertEqual(body["deleted"], 1)
++        self.assertNotIn(2024, body["budget"]["years"])
++        self.assertEqual(self.client.delete("/api/budget/years/2024").status_code, 404)
++
++
++if __name__ == "__main__":
++    unittest.main()
