@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { CurrencyPicker } from '../../currency/CurrencyPicker'
 import { useAsync } from '../../hooks/useAsync'
 import { workbookApi } from './api/client'
 
@@ -18,7 +19,8 @@ interface WorkbookLayoutProps {
 
 /**
  * The frame shared by the Payment Tracker and Budget projects: title, tabs,
- * "Download Excel" and an "is the API alive?" banner. Each project passes its
+ * the currency picker (only money projects need it), "Download Excel" and an
+ * "is the API alive?" banner. Each project passes its
  * own title and tabs; the page itself renders in <Outlet/>.
  */
 export function WorkbookLayout({ eyebrow, title, tabs }: WorkbookLayoutProps) {
@@ -52,9 +54,12 @@ export function WorkbookLayout({ eyebrow, title, tabs }: WorkbookLayoutProps) {
             </NavLink>
           ))}
         </nav>
-        <button type="button" className="btn ghost" onClick={() => void download()} disabled={downloading}>
-          ⤓ Download Excel
-        </button>
+        <div className="tracker-actions">
+          <CurrencyPicker />
+          <button type="button" className="btn ghost" onClick={() => void download()} disabled={downloading}>
+            ⤓ Download Excel
+          </button>
+        </div>
       </div>
 
       {downloadError && (

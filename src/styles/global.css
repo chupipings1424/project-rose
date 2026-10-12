@@ -1723,7 +1723,7 @@ tfoot td {
     gap: 0.75rem;
     padding: 0.6rem 1rem;
   }
-  /* Phones: currency, theme and log out get their own wrapping row. */
+  /* Phones: theme and log out get their own wrapping row. */
   .topbar-actions {
     flex: 1 1 100%;
     flex-wrap: wrap;

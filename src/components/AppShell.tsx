@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
-import { CurrencyPicker } from '../currency/CurrencyPicker'
 import { ThemePicker } from '../theme/ThemePicker'
 import { Brand } from './Brand'
 
@@ -25,7 +24,6 @@ export function AppShell() {
             </NavLink>
           </nav>
           <div className="topbar-actions">
-            <CurrencyPicker />
             <ThemePicker variant="compact" />
             <button type="button" className="btn ghost" onClick={handleLogout}>
               Log out

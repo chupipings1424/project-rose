@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import { CurrencyProvider } from '../../currency/CurrencyProvider'
 import { trackerPaths, TRACKER_BASE } from '../payment-tracker/paths'
 import { WorkbookLayout } from './WorkbookLayout'
 
@@ -21,24 +22,31 @@ function CurrentPath() {
 // Mirrors the real setup: a splat route in App.tsx with nested <Routes> inside.
 function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route
-          path={`${TRACKER_BASE}/*`}
-          element={
-            <Routes>
-              <Route element={<WorkbookLayout eyebrow="Project 01" title="Payment Tracker" tabs={TABS} />}>
-                <Route path="*" element={<CurrentPath />} />
-              </Route>
-            </Routes>
-          }
-        />
-      </Routes>
-    </MemoryRouter>,
+    <CurrencyProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route
+            path={`${TRACKER_BASE}/*`}
+            element={
+              <Routes>
+                <Route element={<WorkbookLayout eyebrow="Project 01" title="Payment Tracker" tabs={TABS} />}>
+                  <Route path="*" element={<CurrentPath />} />
+                </Route>
+              </Routes>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    </CurrencyProvider>,
   )
 }
 
-describe('WorkbookLayout tabs', () => {
+describe('WorkbookLayout', () => {
+  it('has its own currency picker', () => {
+    renderAt(TRACKER_BASE)
+    expect(screen.getByRole('combobox', { name: 'Currency' })).toHaveValue('PHP')
+  })
+
   it('navigates between tabs without stacking URL segments', async () => {
     const user = userEvent.setup()
     renderAt(trackerPaths.report)

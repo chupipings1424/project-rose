@@ -166,7 +166,7 @@ The picker is split into two groups: **Futuristic** and **Anime**.
 
 ## Currency
 
-Pick the display currency in the top bar: **₱ PHP (default)**, $ USD, A$ AUD or € EUR.
+Pick the display currency at the top of the **Payment Tracker** or **Budget** (the other projects do not use money, so it is not in the top bar): **₱ PHP (default)**, $ USD, A$ AUD or € EUR.
 It only changes the symbol and formatting. Amounts are never converted. The choice is
 saved in your browser. (The Excel workbook keeps its own number format.)
 

@@ -21,6 +21,12 @@
   backdrop-filter: blur(12px);
   margin-left: auto;
 }
+.tracker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
 
 /* toolbar card at the top of each page */
 .toolbar {
