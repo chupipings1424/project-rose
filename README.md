@@ -46,6 +46,9 @@ npm install      # first time only
 npm start        # ROSE API + ROSE UI
 ```
 
+Or double-click **`start-rose.bat`**: it opens the API in one window, waits until it is ready,
+then opens the UI in a second window and your browser. Close a window to stop that part.
+
 Open <http://localhost:5180> and log in with your access token.
 The API documentation (Swagger UI) is at <http://127.0.0.1:5175/swagger>.
 
