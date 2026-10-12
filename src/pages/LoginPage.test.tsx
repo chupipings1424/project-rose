@@ -1,10 +1,11 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../auth/AuthProvider'
 import { ProtectedRoute } from '../auth/ProtectedRoute'
 import { EntranceProvider } from '../intro/EntranceProvider'
+import { mockLoginApi, TEST_TOKEN } from '../test/mockLoginApi'
 import { ThemeProvider } from '../theme/ThemeProvider'
 import LoginPage from './LoginPage'
 
@@ -28,9 +29,8 @@ function renderApp(startAt = '/projects') {
 }
 
 describe('LoginPage', () => {
-  beforeEach(() => {
-    vi.stubEnv('VITE_ROSE_TOKEN', 'test-token-123')
-  })
+  beforeEach(() => mockLoginApi())
+  afterEach(() => vi.unstubAllGlobals())
 
   it('redirects a visitor without a session to the login page', () => {
     renderApp('/projects')
@@ -55,7 +55,7 @@ describe('LoginPage', () => {
     const user = userEvent.setup()
     renderApp('/projects')
 
-    await user.type(screen.getByLabelText('Access token'), 'test-token-123')
+    await user.type(screen.getByLabelText('Access token'), TEST_TOKEN)
     await user.click(screen.getByRole('button', { name: 'Authenticate' }))
 
     expect(await screen.findByText('Projects hub')).toBeInTheDocument()

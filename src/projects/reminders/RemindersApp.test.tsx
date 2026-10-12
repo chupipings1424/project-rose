@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Reminder } from '../../../shared/reminders'
+import type { Reminder } from './model'
 import { ToastProvider } from '../../components/toast/ToastProvider'
 import RemindersApp from './RemindersApp'
 
@@ -26,23 +26,40 @@ function reminder(overrides: Partial<Reminder>): Reminder {
 const json = (body: unknown, status = 200) =>
   Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }))
 
+/** The API answers in snake_case, like the real .NET backend. */
+const wire = (r: Reminder) => ({
+  id: r.id,
+  text: r.text,
+  due_at: r.dueAt,
+  repeat: r.repeat,
+  week_days: r.weekDays,
+  done: r.done,
+  ringing: r.ringing,
+  snoozed_until: r.snoozedUntil,
+  fired_for: r.firedFor,
+  last_fired_at: r.lastFiredAt,
+  created_at: r.createdAt,
+  updated_at: r.updatedAt,
+})
+
 describe('RemindersApp', () => {
   let items: Reminder[]
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     const method = init?.method ?? 'GET'
-    if (url.endsWith('/items') && method === 'GET') return json(items)
+    if (url.endsWith('/items') && method === 'GET') return json(items.map(wire))
     if (url.endsWith('/items') && method === 'POST') {
-      const created = reminder({ id: 'r9', ...JSON.parse(String(init?.body)) })
+      const sent = JSON.parse(String(init?.body))
+      const created = reminder({ id: 'r9', text: sent.text, dueAt: sent.due_at, repeat: sent.repeat, weekDays: sent.week_days })
       items = [...items, created]
-      return json(created, 201)
+      return json(wire(created), 201)
     }
     const snooze = url.match(/\/items\/(\w+)\/snooze$/)
     if (snooze) {
       items = items.map((r) => (r.id === snooze[1] ? { ...r, ringing: false, snoozedUntil: '2030-01-01T02:00:00.000Z' } : r))
-      return json(items.find((r) => r.id === snooze[1]))
+      return json(wire(items.find((r) => r.id === snooze[1])!))
     }
-    return json({ error: `Unexpected ${method} ${url}` }, 500)
+    return json({ detail: `Unexpected ${method} ${url}` }, 500)
   })
 
   beforeEach(() => {
@@ -88,6 +105,6 @@ describe('RemindersApp', () => {
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!
     const body = JSON.parse(String(post[1]!.body))
     expect(body).toMatchObject({ text: 'Gym', repeat: 'weekly' })
-    expect(body.weekDays).toContain(5)
+    expect(body.week_days).toContain(5)
   })
 })

@@ -1,4 +1,4 @@
-import type { Reminder } from '../../../../shared/reminders'
+import type { Reminder } from '../model'
 
 export type ReminderStatus = 'ringing' | 'overdue' | 'snoozed' | 'upcoming' | 'done'
 

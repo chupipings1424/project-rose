@@ -1,5 +1,5 @@
 // Project ROSE service worker. Its only job is notifications: it wakes up when the
-// reminders worker sends a Web Push message, even if ROSE is closed.
+// ROSE API sends a Web Push message, even if ROSE is closed.
 // (No offline caching - ROSE needs your PC anyway.)
 
 self.addEventListener('install', () => self.skipWaiting())

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { REPEAT_RULES, WEEKDAY_NAMES, type RepeatRule, type ReminderInput } from '../../../../shared/reminders'
+import { REPEAT_RULES, WEEKDAY_NAMES, type RepeatRule, type ReminderInput } from '../model'
 import { fromLocalInput, nextHour, toLocalInput } from '../lib/time'
 
 const REPEAT_LABELS: Record<RepeatRule, string> = {

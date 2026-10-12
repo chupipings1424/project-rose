@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Reminder, ReminderInput } from '../../../shared/reminders'
+import type { Reminder, ReminderInput } from './model'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
 import { EmptyState, ErrorState, LoadingState } from '../../components/States'

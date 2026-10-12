@@ -1,43 +1,76 @@
 # Project ROSE
 
-A personal, futuristic **project hub** built with **React 19 + TypeScript + Vite**, plus a
-small **Node.js + TypeScript** background worker.
+A personal, futuristic **project hub** built with **React 19 + TypeScript + Vite**.
+This repo is the **UI only**. All data and background work live in the **ROSE API**, a
+.NET 9 backend with Swagger in its own repo:
+[project-rose-api](https://github.com/chupipings1424/project-rose-api).
 Log in with an access token, pick a theme, walk through the gate, and launch your projects:
 
 | # | Project | What it shows off |
 | --- | --- | --- |
 | 01 | **Payment Tracker** | A full React rebuild of a Flask + Excel app: loans, payments, budget, charts, import/export |
-| 02 | **Reminders** | A background worker with repeat rules, a Windows always-on-top alarm popup and **Web Push** browser notifications |
+| 02 | **Reminders** | Repeat rules, a Windows always-on-top alarm popup and **Web Push** notifications (iPhone too) |
 
-**Tech:** React 19 · TypeScript (strict) · Vite · React Router · Recharts · Vitest + Testing
-Library · oxlint · Node 22 (native TypeScript type stripping) · Web Push (VAPID) · Service
-Workers · PWA manifest · PowerShell/WPF.
+**Tech:** React 19, TypeScript (strict), Vite, React Router, Recharts, Vitest + Testing
+Library, oxlint, Service Workers, PWA manifest. Backend: ASP.NET Core 9, Swagger, JWT, xUnit
+(see project-rose-api).
 
 Personal data never leaves the PC: payments live in a local Excel workbook and reminders in a
-local JSON file. Both are git-ignored.
+local JSON file, both in the API's git-ignored `data/` folder.
 
 > New to React or TypeScript? Read **[LEARNING.md](LEARNING.md)**. It walks
 > through this codebase concept by concept.
 
 ## Quick start
 
+Clone both repos **side by side**:
+
+```
+Desktop\
+  project-rose\        this repo (UI)
+  project-rose-api\    the .NET API
+```
+
+One-time setup:
+
+1. Install **Node.js 22+** and the **.NET 9 SDK**.
+2. In `project-rose-api\src\Rose.Api`, copy `appsettings.Local.example.json` to
+   `appsettings.Local.json` and put your access token in it (that file is git-ignored).
+3. Here, copy `.env.example` to `.env`.
+
+Then:
+
 ```powershell
 # double-click start.cmd, or:
 npm install      # first time only
-npm start        # Payment Tracker API (if needed) + Reminders worker + ROSE
+npm start        # ROSE API + ROSE UI
 ```
 
-Then open <http://localhost:5180> and log in with the token stored in `.env`
-as `VITE_ROSE_TOKEN`.
+Open <http://localhost:5180> and log in with your access token.
+The API documentation (Swagger UI) is at <http://127.0.0.1:5175/swagger>.
 
 `npm start` runs `scripts/dev.mjs`, which:
 
-1. checks whether the Payment Tracker API is already running at `PAYMENT_TRACKER_URL`
-2. if not, starts `app.py` from `PAYMENT_TRACKER_DIR` (with `NO_BROWSER=1`)
-3. starts the Reminders worker (`server/index.ts`) unless it is already running
-4. starts the Vite dev server and opens the browser (set `ROSE_NO_OPEN=1` to skip)
+1. checks whether the ROSE API already answers at `ROSE_API_URL/health`
+2. if not: copies old data the API does not have yet (see below), runs `dotnet build`
+   and starts the API
+3. waits until the API is healthy, then starts Vite and opens the browser
+   (set `ROSE_NO_OPEN=1` to skip)
 
-ROSE and the classic Payment Tracker UI share the **same `payments.xlsx`**.
+`Ctrl+C` stops both.
+
+### Moving from the old Flask + Node setup
+
+The first `npm start` copies these into `project-rose-api\data\`. It only copies files
+that are **missing** there, so it never overwrites anything:
+
+| From | To |
+| --- | --- |
+| `PAYMENT_TRACKER_DIR\payments.xlsx` | `data\payments.xlsx` |
+| `server\data\reminders.json`, `push-devices.json`, `vapid.json` | `data\` (same names) |
+
+`vapid.json` is the push key pair; keeping it means your iPhone stays subscribed. The Flask
+app is no longer needed. Once everything works, `server\data\` can be deleted.
 
 ## Configuration (`.env`)
 
@@ -45,18 +78,17 @@ Copy `.env.example` to `.env` and edit it. `.env` is git-ignored.
 
 | Variable | Purpose |
 | --- | --- |
-| `VITE_ROSE_TOKEN` | Access token for the login page. Change it here; restart `npm start`. |
-| `PAYMENT_TRACKER_URL` | Where the Flask API runs (default `http://127.0.0.1:5174`). |
-| `PAYMENT_TRACKER_DIR` | Folder containing the Payment Tracker `app.py`. |
-| `REMINDERS_PORT` | Port of the Reminders worker (default `5176`, local only). |
-| `REMINDERS_DATA_DIR` | Where reminders, phones and push keys are stored (default `server/data`). |
-| `ROSE_PUSH_CONTACT` | Sender contact for push services (`mailto:` or `https://`). |
-| `NO_NATIVE_ALARM` | `1` turns off the Windows popup (phone push still works). |
-| `TODO_APP_DIR` | One-time import of the old To-Do & Alarms app's `tasks.json`. |
+| `ROSE_API_URL` | Where the API answers (default `http://127.0.0.1:5175`). Vite forwards `/api/*` there. |
+| `ROSE_API_DIR` | Where project-rose-api is cloned (default `../project-rose-api`). |
+| `PAYMENT_TRACKER_DIR` | Only used once, to copy `payments.xlsx` into the API. |
+| `ROSE_NO_OPEN` | `1` = do not open the browser. |
 
-> **Security note:** the token is checked in the browser, so it is a "front door
-> lock", not real security. Anything prefixed `VITE_` is bundled into the JavaScript.
-> See *Authentication* in LEARNING.md for the upgrade path to server-side auth.
+The access token, session length, reminder and push settings live in the API: see its README.
+
+> **Security:** the access token is checked by the API (constant-time compare, at most 10
+> attempts per minute). The API answers with a signed session token (a JWT, valid 12 hours)
+> that the browser sends as `Authorization: Bearer ...` on every request. Nothing secret is in
+> the JavaScript bundle. See *Authentication* in LEARNING.md.
 
 ## The entrance: the Testing Gate
 
@@ -90,61 +122,35 @@ Pick the display currency in the top bar: **₱ PHP (default)**, $ USD, A$ AUD o
 It only changes the symbol and formatting. Amounts are never converted. The choice is
 saved in your browser. (The Excel workbook keeps its own number format.)
 
-## Payment Tracker backend patch (delete title / delete year)
-
-The trash icons next to the **title** dropdown (Payments) and the **year** dropdown
-(Budget) need two endpoints that the original Flask app doesn't have yet:
-
-| Endpoint | Does |
-| --- | --- |
-| `DELETE /api/accounts/<title>` | Deletes the title **and all its payments** in one save |
-| `DELETE /api/budget/years/<year>` | Deletes every budget line in that year (and its "Budget YYYY" sheet) |
-
-Apply the patch once, then restart `npm start`:
-
-```powershell
-cd <path-to>\payment-tracker
-git apply <path-to>\project-rose\backend-patches\payment-tracker-delete.patch
-py -3 -m unittest test_delete -v     # 7 new tests
-```
-
-Until it is applied, the trash icons show a message telling you to apply it.
-Nothing is deleted.
-
 ## Reminders (Project 02)
 
 Reminders with a date and time, optionally repeating (**daily**, **weekdays**, **weekly on
-chosen days**, **monthly**). A background worker checks every 15 seconds; when one is due it:
+chosen days**, **monthly**). The API checks every 15 seconds; when one is due it:
 
 - pops up the **always-on-top alarm window** on the PC (with sound, Done and Snooze), and
-- sends a **Windows notification** through the browser (if you turned notifications on in Reminders).
+- sends a **push notification** to every phone/browser that turned notifications on.
 
 In ROSE a ringing reminder can be snoozed (5/10/30/60 min), marked done, edited or deleted.
 Missed one-off reminders stay in **Missed** until you finish them. Repeating reminders move
 to their next time automatically.
 
 ```
- Browser ──/api/reminders──▶ Vite :5180 ──proxy──▶ worker :5176 ──▶ reminders.json
-                                                     │
-          Windows popup (alarm.ps1) ◀────────────────┤
-          browser notification ◀── Web Push (VAPID) ─┘
+ Browser --/api--> Vite :5180 --proxy--> ROSE API :5175 --> data\reminders.json
+                                              |
+           Windows alarm popup <--------------+
+           phone / browser notification <-- Web Push (VAPID)
 ```
 
-The worker is plain Node 22 (`node:http`, no framework) running TypeScript directly. The
-scheduling rules live in `shared/reminders.ts` and are used by **both** the worker and the
-React page. Run it alone with `npm run reminders`.
-
-Everything runs on this PC only. The worker listens on `127.0.0.1`, so nothing is
-reachable from other devices. The PC must be on with `npm start` running; reminders that
+The scheduler is a .NET `BackgroundService` inside the API. Everything runs on this PC only:
+the API listens on `127.0.0.1`. The PC must be on with `npm start` running; reminders that
 fall due while it is off ring as soon as it starts again.
 
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
-| `npm start` | Payment Tracker API + Reminders worker + Vite dev server (recommended) |
-| `npm run dev` | Vite only (start the APIs yourself) |
-| `npm run reminders` | Reminders worker only |
+| `npm start` | ROSE API + Vite dev server (recommended) |
+| `npm run dev` | Vite only (start the API yourself, see the project-rose-api README) |
 | `npm test` / `npm run test:watch` | Vitest + React Testing Library |
 | `npm run lint` | oxlint |
 | `npm run typecheck` | `tsc -b` |
@@ -157,7 +163,8 @@ src/
   main.tsx              entry point: storage migration + providers
                         (Router > Theme > Currency > Auth > Toast > Entrance)
   App.tsx               routes (login, protected shell, lazy projects)
-  auth/                 token check, session storage, AuthProvider, ProtectedRoute
+  api/http.ts           apiFetch: adds the session token, friendly errors, 401 = log out
+  auth/                 login against the API, session storage, AuthProvider, ProtectedRoute
   theme/                8 themes (5 futuristic + 3 anime), ThemeProvider, ThemePicker
   intro/                the login gate (EntranceProvider, GateIntro, GateDoor, gate.css, Web Audio)
   currency/             display currency (₱ PHP default, $ USD, A$ AUD, € EUR)
@@ -170,17 +177,12 @@ src/
   projects/
     registry.ts         the list of projects shown on the hub
     payment-tracker/    api client + types, pages, components, styles
-    reminders/          Reminders page, form, push opt-in (lib/push.ts)
+    reminders/          Reminders page, form, model.ts (types), push opt-in (lib/push.ts)
   styles/global.css     design system + theme CSS variables
-shared/reminders.ts     types + repeat/scheduling rules used by BOTH browser and worker
-server/
-  index.ts              Reminders worker entry: 15s tick, push, popup, legacy import
-  reminders/            HTTP routes, ReminderService, PushService, JSON storage, alarm.ps1
 public/
   sw.js                 service worker: shows push notifications
   manifest.webmanifest  PWA manifest (name, icons, standalone)
-scripts/dev.mjs         one-command launcher
-backend-patches/        changes for the Payment Tracker Flask app (see below)
+scripts/dev.mjs         one-command launcher (API + UI)
 ```
 
 ## Adding a project

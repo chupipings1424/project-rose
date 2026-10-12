@@ -1,22 +1,22 @@
 // Starts everything Project ROSE needs with one command: `npm start`.
 //
-//   1. the Payment Tracker Flask server (unless it is already running)
-//   2. the Reminders worker - rings reminders as popups + notifications (server/index.ts)
-//   3. the Vite dev server for the React app
+//   1. the ROSE API - the .NET backend from the project-rose-api repo
+//      (payment tracker + reminders + Swagger), unless it is already running
+//   2. the Vite dev server for this React app
 //
 // Settings come from .env (Node loads it via --env-file-if-exists).
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const trackerUrl = process.env.PAYMENT_TRACKER_URL ?? 'http://127.0.0.1:5174'
-const trackerDir = process.env.PAYMENT_TRACKER_DIR
-const remindersPort = process.env.REMINDERS_PORT ?? '5176'
+const apiUrl = process.env.ROSE_API_URL ?? 'http://127.0.0.1:5175'
+const apiDir = path.resolve(root, process.env.ROSE_API_DIR ?? '../project-rose-api')
+const apiProject = path.join(apiDir, 'src', 'Rose.Api')
 const children = []
 
-const colors = { tracker: '\x1b[35m', reminders: '\x1b[33m', rose: '\x1b[36m', reset: '\x1b[0m' }
+const colors = { api: '\x1b[35m', rose: '\x1b[36m', reset: '\x1b[0m' }
 const log = (name, message) => console.log(`${colors[name]}[${name}]${colors.reset} ${message}`)
 
 /** True when a server answers this URL within 1.5s. */
@@ -27,14 +27,6 @@ async function isUp(url) {
   } catch {
     return false
   }
-}
-
-function findPython() {
-  for (const [cmd, args] of [['py', ['-3']], ['python', []], ['python3', []]]) {
-    const probe = spawnSync(cmd, [...args, '--version'], { stdio: 'ignore' })
-    if (probe.status === 0) return [cmd, args]
-  }
-  return null
 }
 
 function run(name, cmd, args, options = {}) {
@@ -56,42 +48,86 @@ function run(name, cmd, args, options = {}) {
 }
 
 function shutdown(code = 0) {
-  for (const child of children) if (!child.killed) child.kill()
+  for (const child of children) if (child.exitCode === null) child.kill()
   process.exit(code)
 }
 process.on('SIGINT', () => shutdown(0))
 process.on('SIGTERM', () => shutdown(0))
 
-if (await isUp(`${trackerUrl}/api/now`)) {
-  log('tracker', `already running at ${trackerUrl}`)
-} else if (!trackerDir || !existsSync(path.join(trackerDir, 'app.py'))) {
-  log('tracker', 'PAYMENT_TRACKER_DIR is not set or has no app.py - skipping the backend.')
-  log('tracker', 'Set it in .env, or start the payment tracker yourself.')
-} else {
-  const python = findPython()
-  if (!python) {
-    log('tracker', 'Python 3 was not found on PATH - cannot start the payment tracker.')
-  } else {
-    const port = new URL(trackerUrl).port || '5174'
-    log('tracker', `starting from ${trackerDir}`)
-    run('tracker', python[0], [...python[1], 'app.py'], {
-      cwd: trackerDir,
-      env: { ...process.env, NO_BROWSER: '1', PORT: port, PYTHONUNBUFFERED: '1' },
-    })
+/**
+ * One-time move from the old setup (Flask + Node worker) to the API's data
+ * folder. Only copies files the API does not have yet, so it never overwrites.
+ */
+function migrateOldData(dataDir) {
+  const candidates = [
+    process.env.PAYMENT_TRACKER_DIR && path.join(process.env.PAYMENT_TRACKER_DIR, 'payments.xlsx'),
+    path.join(root, 'server', 'data', 'reminders.json'),
+    path.join(root, 'server', 'data', 'push-devices.json'),
+    path.join(root, 'server', 'data', 'vapid.json'),
+  ].filter(Boolean)
+
+  mkdirSync(dataDir, { recursive: true })
+  for (const source of candidates) {
+    const target = path.join(dataDir, path.basename(source))
+    if (existsSync(source) && !existsSync(target)) {
+      copyFileSync(source, target)
+      log('api', `copied ${source} -> ${target}`)
+    }
   }
 }
 
-if (await isUp(`http://127.0.0.1:${remindersPort}/api/reminders/status`)) {
-  log('reminders', `already running on port ${remindersPort}`)
-} else {
-  // Node 22 runs TypeScript directly by stripping the types - no build step.
-  run(
-    'reminders',
-    process.execPath,
-    ['--experimental-strip-types', '--disable-warning=ExperimentalWarning', path.join(root, 'server', 'index.ts')],
-    { cwd: root, env: { ...process.env, REMINDERS_PORT: remindersPort } },
-  )
+async function waitForApi(child, seconds) {
+  for (let i = 0; i < seconds; i++) {
+    if (child.exitCode !== null) return false
+    if (await isUp(`${apiUrl}/health`)) return true
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+  return false
 }
+
+async function startApi() {
+  if (await isUp(`${apiUrl}/health`)) {
+    log('api', `already running at ${apiUrl}`)
+    return
+  }
+  if (!existsSync(path.join(apiProject, 'Rose.Api.csproj'))) {
+    log('api', `Cannot find the ROSE API at ${apiDir}.`)
+    log('api', 'Clone https://github.com/chupipings1424/project-rose-api next to this folder, or set ROSE_API_DIR in .env.')
+    return
+  }
+  if (spawnSync('dotnet', ['--version'], { stdio: 'ignore', shell: true }).status !== 0) {
+    log('api', 'The .NET SDK was not found. Install .NET 9 from https://dotnet.microsoft.com/download.')
+    return
+  }
+  if (!existsSync(path.join(apiProject, 'appsettings.Local.json')) && !process.env.Auth__AccessToken) {
+    log('api', `No access token configured. Copy appsettings.Local.example.json to appsettings.Local.json in`)
+    log('api', `${apiProject} and put your token in it.`)
+    return
+  }
+
+  migrateOldData(path.join(apiDir, 'data'))
+
+  log('api', 'building (the first time takes a minute)...')
+  const build = spawnSync('dotnet', ['build', apiProject, '-c', 'Debug', '-nologo', '-v', 'q'], {
+    stdio: 'inherit',
+    shell: true,
+  })
+  if (build.status !== 0) {
+    log('api', 'Build failed - see the errors above.')
+    return
+  }
+
+  // Run the built DLL directly (not `dotnet run`), so stopping ROSE also stops the API.
+  // The working folder is the project, so appsettings*.json and ../../data are found.
+  const child = run('api', 'dotnet', [path.join('bin', 'Debug', 'net9.0', 'Rose.Api.dll')], {
+    cwd: apiProject,
+    env: { ...process.env, ASPNETCORE_ENVIRONMENT: 'Development', URLS: apiUrl },
+  })
+  if (await waitForApi(child, 60)) log('api', `ready - Swagger UI at ${apiUrl}/swagger`)
+  else log('api', 'did not start - see the messages above.')
+}
+
+await startApi()
 
 const viteArgs = [path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')]
 if (process.env.ROSE_NO_OPEN !== '1') viteArgs.push('--open')

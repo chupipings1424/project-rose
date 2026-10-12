@@ -4,7 +4,6 @@ import { afterEach, vi } from 'vitest'
 
 afterEach(() => {
   cleanup()
-  // Server tests run in the `node` environment, which has no localStorage.
-  globalThis.localStorage?.clear()
+  localStorage.clear()
   vi.unstubAllEnvs()
 })

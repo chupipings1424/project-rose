@@ -174,7 +174,7 @@ or the sound works. That is the **dependency inversion** idea from SOLID, in Rea
 | `as const satisfies` | `THEMES` in `theme/themes.ts` | Keeps literal ids *and* checks the shape |
 | Derived types | `type ThemeId = (typeof THEMES)[number]['id']` | One source of truth |
 | `import type` | everywhere | Required by `verbatimModuleSyntax`; erased at build time |
-| Typed env vars | `src/env.d.ts` | `import.meta.env.VITE_ROSE_TOKEN` is known to TS |
+| Typed DTOs + mapping | `ReminderDto` / `fromDto` in `reminders/api/client.ts` | The API's snake_case JSON is typed; the page keeps camelCase |
 
 Tip: hover anything in VS Code to see its inferred type.
 
@@ -182,21 +182,28 @@ Tip: hover anything in VS Code to see its inferred type.
 
 ## 8. Talking to a backend
 
-`src/projects/payment-tracker/api/client.ts` is the **only** place that knows URLs.
-Components call `trackerApi.summary(title)` and get typed data back.
+All data comes from the **ROSE API**, a separate .NET 9 project
+([project-rose-api](https://github.com/chupipings1424/project-rose-api)). Its Swagger UI at
+<http://127.0.0.1:5175/swagger> lists every endpoint and lets you try them out.
 
-- A small `request<T>()` wrapper handles JSON, errors (`ApiError`), and the
-  "backend offline" case.
-- **Vite proxy** (`vite.config.ts`): the browser calls `/api/payment-tracker/...`
-  on port 5180, and Vite forwards it to Flask at `PAYMENT_TRACKER_URL`. No CORS
-  setup is needed, and the frontend never hard-codes the backend address.
-- After a mutation, the API returns fresh data and the page calls `setData(...)`
-  from `useAsync`, so there's no extra reload round-trip.
-- **Version tolerance:** `newerEndpoint()` wraps endpoints that only exist after
-  the backend patch (delete title / delete year). An older server answers with a
-  plain 404 page, so the user gets "apply the patch" instead of a cryptic error.
-  `ApiError.fromServer` tells a real "Title not found." apart from "no such route".
-  See `api/client.test.ts`, which stubs `fetch` to test all three cases.
+- `src/api/http.ts` is the one door to the API. `apiFetch()` adds
+  `Authorization: Bearer <session token>`, turns "server not running" into a friendly
+  message, and on **401** clears the session and fires `rose:unauthorized`, which
+  `AuthProvider` listens for to send you back to the login page.
+- Each project has its own typed client (`payment-tracker/api/client.ts`,
+  `reminders/api/client.ts`). Components call `trackerApi.summary(title)` and get typed
+  data back; they never call `fetch` themselves.
+- **Error messages come from the server.** The API answers errors as RFC 7807
+  *problem details* (`{ title, status, detail }`), and `errorMessage()` shows the `detail`.
+- **snake_case vs camelCase.** The API speaks `due_at`; the reminders page uses `dueAt`.
+  `reminders/api/client.ts` maps between them in one place (`fromDto` / `toDto`), so the
+  rest of the UI never sees the wire format.
+- **Downloads need the token too.** A plain `<a href>` cannot send an `Authorization`
+  header, so `downloadFile()` fetches the bytes and hands the browser a temporary `blob:` URL.
+- **Vite proxy** (`vite.config.ts`): the browser calls `/api/...` on port 5180 and Vite
+  forwards it to the API at `ROSE_API_URL`. No CORS setup, and no hard-coded backend address.
+- After a mutation the API returns fresh data and the page calls `setData(...)` from
+  `useAsync`, so there's no extra reload round-trip.
 
 ---
 
@@ -311,27 +318,35 @@ npm run test:watch  # re-run on save
 - **Components** are tested the way a user would use them:
   `pages/LoginPage.test.tsx` types into the field with `userEvent` and asserts on
   what's visible (`screen.getByRole(...)`), not on internal state.
-- `vi.stubEnv` swaps the token per test, and `vi.useFakeTimers` / a `now`
-  parameter make time deterministic.
+- `vi.stubGlobal('fetch', ...)` replaces the network (`test/mockLoginApi.ts` is a fake
+  login endpoint), and `vi.useFakeTimers` / a `now` parameter make time deterministic.
+- The API has its own xUnit tests: run `dotnet test` in project-rose-api.
 
 TDD loop (Kent Beck): write a failing test → make it pass → refactor.
 
 ---
 
-## 12. Authentication: today and tomorrow
+## 12. Authentication
 
-**Today:** `authService.login()` compares your input to `VITE_ROSE_TOKEN` and
-stores a 12-hour session in `localStorage`. This keeps casual visitors out, but
-the token is visible in the JS bundle. It is **not** real security.
+1. The login page sends your token to `POST /api/auth/login`.
+2. The API compares it with the token in its `appsettings.Local.json` using a
+   **constant-time** comparison (so timing does not reveal how many characters matched),
+   and allows at most 10 attempts per minute.
+3. If it matches, the API returns a **JWT** (JSON Web Token): a small signed note saying
+   "this session is valid until ...". It is signed with a key only the API knows
+   (`data/session-signing.key`), so the browser cannot forge or extend it.
+4. `authService.ts` keeps it in `localStorage` (`rose.session`) and `apiFetch()` sends it
+   with every request. The API rejects any request without a valid one (**401**).
+5. After 12 hours (or if the key changes) the API answers 401 and ROSE returns to the login page.
 
-**Changing the token:** edit `VITE_ROSE_TOKEN` in `.env`, then restart `npm start`.
+Nothing secret is in the JavaScript bundle any more: search the built files and you will not
+find the token.
 
-**Upgrading later** (only `authService.ts` needs to change; `login` is already `async`):
-1. Add a `POST /api/auth/login` endpoint on a server that holds the secret
-   (hashed) and returns a signed, expiring token, ideally as an **httpOnly cookie**.
-2. Make `login()` call it; make `loadSession()` ask `/api/auth/me`.
-3. Have every backend API verify the token, because the server is the real gatekeeper.
-4. Remove `VITE_ROSE_TOKEN` from `.env`.
+**Changing the token:** edit `project-rose-api/src/Rose.Api/appsettings.Local.json`, then
+restart `npm start`. To log every device out, delete `data/session-signing.key` and restart.
+
+**Possible next step:** keep the session in an **httpOnly cookie** instead of
+`localStorage`, so JavaScript (including any injected script) cannot read it.
 
 ---
 
@@ -355,51 +370,39 @@ the token is visible in the JS bundle. It is **not** real security.
 
 ---
 
-## 14. Reminders: TypeScript on the server, Web Push and service workers
+## 14. Reminders: a background service, Web Push and service workers
 
-Project 02 adds a **backend you own**, written in the same language as the frontend.
+Project 02 needs code that runs **when no page is open**: something has to watch the clock
+and ring. That lives in the API as a .NET `BackgroundService` (`ReminderWorker`) that ticks
+every 15 seconds. The rules (repeat, snooze, "the 31st rings on the last day of short
+months") are pure functions that take the time as an argument, so the API's tests can ask
+"what rings at 09:00 on 31 January?" without waiting or mocking clocks.
 
-**Node runs TypeScript directly.** `node --experimental-strip-types server/index.ts` deletes
-the type annotations and runs what is left. No build step. The catch: only syntax that can
-simply be *erased* is allowed (no `enum`, no `constructor(private x)` shorthand). That is what
-`erasableSyntaxOnly` in `tsconfig.server.json` enforces, and why server imports end in `.ts`.
+The page only shows and edits reminders: `reminders/model.ts` holds the `Reminder` type and
+`describeRepeat()` ("Every Mon, Thu") for display.
 
-**Share code, not copies.** `shared/reminders.ts` holds the `Reminder` type and the rules
-(`nextOccurrence`, `collectDue`, `parseReminderInput`). The worker uses them to decide what
-rings; the React form uses the same types. Change a field once and `tsc` shows every place
-on both sides that needs updating.
-
-**Pure functions are easy to test.** `collectDue(reminders, now)` takes the time as an
-argument instead of calling `new Date()` inside, so tests can ask "what rings at 09:00 on
-31 January?" without waiting or mocking clocks.
-
-**A framework-free HTTP server.** `server/reminders/app.ts` uses only `node:http`: parse the
-URL, match method + path, call the service, send JSON. Errors become `{ error }` with a
-status code. The tests start it on a random port and call it with `fetch`.
-
-**Dependency injection without a framework.** `createHandler({ reminders, push, ... })` and
-`new PushService(file, keys, contact, send)` receive what they need. Tests pass a fake `send`
-instead of really calling Apple's servers.
+(This worker started as Node + TypeScript inside this repo. It was ported to .NET and
+checked against the old version with the same inputs before the switch.)
 
 **Web Push in four steps:**
 
-1. The worker creates a **VAPID key pair** once (`server/data/vapid.json`). The public key
+1. The API creates a **VAPID key pair** once (`data/vapid.json`). The public key
    identifies *your* server to Apple/Google.
 2. The page calls `Notification.requestPermission()`, **directly inside the click handler**
    (iOS ignores it otherwise), then `pushManager.subscribe({ applicationServerKey })`.
 3. The browser returns a **subscription** (a secret URL at Apple's push service plus
-   encryption keys). The page POSTs it to the worker, which stores it.
-4. When a reminder is due, `web-push` encrypts the message and POSTs it to that URL. Apple
+   encryption keys). The page POSTs it to the API, which stores it (`data/push-devices.json`).
+4. When a reminder is due, the API encrypts the message and POSTs it to that URL. Apple
    wakes the phone, which wakes **`public/sw.js`**, which calls `showNotification`.
 
 **Service workers** are scripts the browser keeps *outside* your page. They can run when no
-tab is open, which is the only way a closed app can react to a push. ROSE's worker does
-nothing else (no offline caching), which keeps it simple and avoids stale-code surprises.
+tab is open, which is the only way a closed app can react to a push. ROSE's service worker
+does nothing else (no offline caching), which keeps it simple and avoids stale-code surprises.
 
 **PWA = a website that can be installed.** `manifest.webmanifest` (name, icons,
 `display: standalone`) plus the `apple-touch-icon` lets Edge's *Install app* turn
-ROSE into its own window with an icon. (On iPhone, push only works for installed apps
-served over HTTPS, which is why ROSE does not offer phone push.)
+ROSE into its own window with an icon. (On iPhone, web push only works for apps added to
+the Home Screen.)
 
 ---
 
@@ -412,6 +415,8 @@ served over HTTPS, which is why ROSE does not offer phone push.)
 5. Add a search box to `PaymentsTable` using `useDebouncedValue`.
 6. Build a tiny "Notes" project that stores notes in `localStorage` and plug it
    into the hub (section 13). Write one component test for it.
-7. Move the token check to a server (section 12).
-8. Add a "yearly" repeat rule to `shared/reminders.ts`. Write the tests first, then make
-   them pass, then add it to the form (section 14).
+7. Keep the session in an httpOnly cookie instead of `localStorage` (section 12; the API
+   needs a small change too).
+8. Add a "yearly" repeat rule: first in the API's reminder rules (write the xUnit tests
+   first), then in `REPEAT_RULES` / `describeRepeat` in `reminders/model.ts` and the form
+   (section 14).

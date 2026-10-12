@@ -17,72 +17,12 @@ import type {
   Summary,
 } from './types'
 
-/** Vite proxies this prefix to the Flask server (see vite.config.ts). */
+import { downloadFile, requestJson } from '../../../api/http'
+
+/** The payment tracker's part of the ROSE API (Vite proxies /api, see vite.config.ts). */
 export const API_BASE = '/api/payment-tracker'
 
-export class ApiError extends Error {
-  readonly status: number
-  /** True when the Flask app itself answered with a JSON `{ error }` message. */
-  readonly fromServer: boolean
-
-  constructor(message: string, status: number, fromServer = false) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.fromServer = fromServer
-  }
-}
-
-const OFFLINE_MESSAGE =
-  'Cannot reach the Payment Tracker server. Start it with "npm start" (or run start.cmd in the payment-tracker folder).'
-
-const BACKEND_UPDATE_MESSAGE =
-  'Your Payment Tracker server does not support this yet. Apply backend-patches/payment-tracker-delete.patch (see README) and restart it.'
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  let response: Response
-  try {
-    const isForm = init?.body instanceof FormData
-    response = await fetch(`${API_BASE}${path}`, {
-      ...init,
-      // FormData sets its own multipart Content-Type header, so only set JSON for JSON bodies.
-      headers: isForm ? init?.headers : { 'Content-Type': 'application/json', ...init?.headers },
-    })
-  } catch {
-    throw new ApiError(OFFLINE_MESSAGE, 0)
-  }
-
-  const text = await response.text()
-  let body: unknown = undefined
-  try {
-    body = text ? JSON.parse(text) : undefined
-  } catch {
-    // not JSON - usually the dev proxy saying the backend is down
-  }
-
-  if (!response.ok) {
-    const serverMessage = (body as { error?: string } | undefined)?.error
-    if (!serverMessage && response.status >= 500) throw new ApiError(OFFLINE_MESSAGE, response.status)
-    throw new ApiError(serverMessage ?? `Request failed (${response.status})`, response.status, Boolean(serverMessage))
-  }
-  if (body === undefined) throw new ApiError(OFFLINE_MESSAGE, response.status)
-  return body as T
-}
-
-/**
- * For endpoints added after the original Payment Tracker: an older server answers
- * with a plain 404/405 page (no JSON), which we turn into a helpful message.
- */
-async function newerEndpoint<T>(call: Promise<T>): Promise<T> {
-  try {
-    return await call
-  } catch (error) {
-    if (error instanceof ApiError && !error.fromServer && (error.status === 404 || error.status === 405)) {
-      throw new ApiError(BACKEND_UPDATE_MESSAGE, error.status)
-    }
-    throw error
-  }
-}
+const request = <T>(path: string, init?: RequestInit) => requestJson<T>(`${API_BASE}${path}`, init)
 
 const json = (method: string, data: unknown): RequestInit => ({ method, body: JSON.stringify(data) })
 const yearQuery = (year?: number | string | null) => (year ? `?year=${encodeURIComponent(year)}` : '')
@@ -97,11 +37,9 @@ export const trackerApi = {
   createAccount: (payload: NewAccountPayload) => request<Account[]>('/accounts', json('POST', payload)),
   /** Deletes a title and every payment under it. */
   deleteAccount: (title: string) =>
-    newerEndpoint(
-      request<{ ok: true; deleted_payments: number; accounts: Account[] }>(`/accounts/${encodeURIComponent(title)}`, {
-        method: 'DELETE',
-      }),
-    ),
+    request<{ ok: true; deleted_payments: number; accounts: Account[] }>(`/accounts/${encodeURIComponent(title)}`, {
+      method: 'DELETE',
+    }),
   previewSchedule: (payload: SchedulePayload) =>
     request<SchedulePreview>('/accounts/preview', json('POST', payload)),
   summary: (title: string) => request<Summary>(`/summary/${encodeURIComponent(title)}`),
@@ -131,9 +69,7 @@ export const trackerApi = {
     ),
   /** Deletes every budget line in a year; returns the current year's budget. */
   deleteBudgetYear: (year: number) =>
-    newerEndpoint(
-      request<{ ok: true; deleted: number; budget: Budget }>(`/budget/years/${year}`, { method: 'DELETE' }),
-    ),
+    request<{ ok: true; deleted: number; budget: Budget }>(`/budget/years/${year}`, { method: 'DELETE' }),
 
   // report
   report: (year?: number | string | null) => request<ReportSummary>(`/report/summary${yearQuery(year)}`),
@@ -147,6 +83,7 @@ export const trackerApi = {
     if (options.year) form.append('year', options.year)
     return request<ImportPlan>(`/import/${kind}`, { method: 'POST', body: form })
   },
-  downloadUrl: `${API_BASE}/download`,
-  sampleUrl: (kind: ImportKind) => `${API_BASE}/import/sample/${kind}`,
+  /** Saves the whole workbook (payments.xlsx) to the browser's downloads. */
+  download: () => downloadFile(`${API_BASE}/download`, 'payments.xlsx'),
+  downloadSample: (kind: ImportKind) => downloadFile(`${API_BASE}/import/sample/${kind}`, `sample-${kind}.csv`),
 }

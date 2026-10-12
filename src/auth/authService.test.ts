@@ -1,46 +1,59 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { SESSION_KEY, SESSION_TTL_MS, clearSession, loadSession, login } from './authService'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { SESSION_KEY, clearSession, loadSession, login } from './authService'
+import { mockLoginApi, TEST_TOKEN } from '../test/mockLoginApi'
 
 describe('authService', () => {
-  beforeEach(() => {
-    vi.stubEnv('VITE_ROSE_TOKEN', 'test-token-123')
-  })
+  beforeEach(() => mockLoginApi())
+  afterEach(() => vi.unstubAllGlobals())
 
-  it('accepts the configured token and stores a session', async () => {
-    const result = await login('test-token-123', 1_000)
+  it('sends the token to the API and stores the session it returns', async () => {
+    const result = await login(TEST_TOKEN, 1_000)
 
     expect(result.ok).toBe(true)
-    expect(loadSession(2_000)).toEqual({ authenticatedAt: 1_000, expiresAt: 1_000 + SESSION_TTL_MS })
+    expect(fetch).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({ method: 'POST' }))
+    expect(loadSession(2_000)).toEqual({
+      accessToken: 'session-jwt',
+      authenticatedAt: 1_000,
+      expiresAt: Date.parse('2099-01-01T00:00:00.000Z'),
+    })
   })
 
-  it('ignores surrounding whitespace', async () => {
-    expect((await login('  test-token-123  ')).ok).toBe(true)
+  it('trims surrounding whitespace before sending', async () => {
+    expect((await login(`  ${TEST_TOKEN}  `)).ok).toBe(true)
+    const [, init] = vi.mocked(fetch).mock.calls[0]
+    expect(JSON.parse(String(init?.body))).toEqual({ token: TEST_TOKEN })
   })
 
-  it('rejects a wrong token without creating a session', async () => {
+  it('shows the API message for a wrong token and stores nothing', async () => {
     const result = await login('nope')
 
-    expect(result).toEqual({ ok: false, error: expect.stringMatching(/denied/i) })
+    expect(result).toEqual({ ok: false, error: 'Access denied - that token is not valid.' })
     expect(localStorage.getItem(SESSION_KEY)).toBeNull()
   })
 
-  it('rejects an empty token', async () => {
+  it('rejects an empty token without calling the API', async () => {
     expect(await login('   ')).toEqual({ ok: false, error: 'Enter your access token.' })
+    expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('explains when no token is configured', async () => {
-    vi.stubEnv('VITE_ROSE_TOKEN', '')
-    const result = await login('anything')
+  it('explains when the API is not running', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))))
 
-    expect(result.ok).toBe(false)
-    expect(!result.ok && result.error).toMatch(/VITE_ROSE_TOKEN/)
+    const result = await login(TEST_TOKEN)
+
+    expect(!result.ok && result.error).toMatch(/Cannot reach the ROSE API/)
   })
 
   it('drops an expired session', async () => {
-    await login('test-token-123', 0)
+    await login(TEST_TOKEN)
 
-    expect(loadSession(SESSION_TTL_MS + 1)).toBeNull()
+    expect(loadSession(Date.parse('2099-01-01T00:00:00.001Z'))).toBeNull()
     expect(localStorage.getItem(SESSION_KEY)).toBeNull()
+  })
+
+  it('drops sessions saved by older versions (no access token)', () => {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ authenticatedAt: 1, expiresAt: Date.now() + 60_000 }))
+    expect(loadSession()).toBeNull()
   })
 
   it('ignores corrupted session data', () => {
@@ -49,7 +62,7 @@ describe('authService', () => {
   })
 
   it('clears the session on logout', async () => {
-    await login('test-token-123')
+    await login(TEST_TOKEN)
     clearSession()
     expect(loadSession()).toBeNull()
   })

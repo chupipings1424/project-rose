@@ -1,5 +1,5 @@
-import type { Reminder } from '../../../../shared/reminders'
-import { describeRepeat } from '../../../../shared/reminders'
+import type { Reminder } from '../model'
+import { describeRepeat } from '../model'
 import { TrashIcon } from '../../../components/icons'
 import { statusOf } from '../lib/status'
 import { friendlyTime } from '../lib/time'

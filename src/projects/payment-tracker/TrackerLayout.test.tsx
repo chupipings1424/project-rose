@@ -1,4 +1,4 @@
-﻿import { render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -6,7 +6,7 @@ import { TrackerLayout } from './TrackerLayout'
 import { TRACKER_BASE } from './paths'
 
 vi.mock('./api/client', () => ({
-  trackerApi: { now: () => Promise.resolve({ date: '2026-10-07', time: '12:00' }), downloadUrl: '#' },
+  trackerApi: { now: () => Promise.resolve({ date: '2026-10-07', time: '12:00' }), download: vi.fn() },
 }))
 
 function CurrentPath() {

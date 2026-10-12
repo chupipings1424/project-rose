@@ -191,9 +191,13 @@ function ImportForm({ kind, onClose, onImported }: Omit<Props, 'open'>) {
         <button type="button" className="btn ghost" onClick={onClose}>
           Close
         </button>
-        <a className="btn link" href={trackerApi.sampleUrl(kind)}>
+        <button
+          type="button"
+          className="btn link"
+          onClick={() => void trackerApi.downloadSample(kind).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))}
+        >
           Download example file
-        </a>
+        </button>
       </div>
     </div>
   )
