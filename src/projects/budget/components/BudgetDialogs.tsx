@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Modal } from '../../../components/Modal'
-import type { BudgetLine, BudgetSectionName } from '../api/types'
+import type { BudgetLine, BudgetSectionName } from '../../workbook/api/types'
 
 // ---------------------------------------------------------------------------
 // New line

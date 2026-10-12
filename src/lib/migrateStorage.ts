@@ -9,6 +9,8 @@ export const LEGACY_KEYS: Readonly<Record<string, string | null>> = {
   'febvy.currency': 'rose.currency',
   'febvy.gate.muted': 'rose.gate.muted',
   'febvy.session': null,
+  // Logins used to be kept in localStorage for 12 hours; now they live in sessionStorage.
+  'rose.session': null,
 }
 
 export function migrateLegacyStorage(storage: Storage = localStorage): void {

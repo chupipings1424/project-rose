@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { BudgetLine, BudgetSection } from '../api/types'
+import type { BudgetLine, BudgetSection } from '../../workbook/api/types'
 import { useCurrency } from '../../../currency/useCurrency'
 
 interface Props {

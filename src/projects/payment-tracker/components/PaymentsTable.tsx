@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { shortDate } from '../../../lib/format'
-import type { Payment } from '../api/types'
+import type { Payment } from '../../workbook/api/types'
 import { useCurrency } from '../../../currency/useCurrency'
 
 type Filter = 'all' | 'Paid' | 'Unpaid'

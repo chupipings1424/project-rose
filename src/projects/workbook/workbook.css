@@ -1,4 +1,4 @@
-/* Styles that only the Payment Tracker module needs. Loaded lazily with it. */
+/* Styles shared by the Payment Tracker and Budget projects. Loaded lazily with them. */
 
 .tracker-head {
   display: flex;
@@ -121,73 +121,6 @@
 }
 .row-overdue td {
   color: var(--danger);
-}
-
-/* overview */
-.entry-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25rem;
-}
-.entry-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  color: inherit;
-  text-decoration: none;
-  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
-}
-.entry-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--border-strong);
-  box-shadow: var(--glow);
-}
-.entry-card h2 {
-  font-family: var(--font-display);
-  letter-spacing: 0.06em;
-}
-.entry-card p {
-  margin: 0;
-}
-.entry-wide {
-  grid-column: 1 / -1;
-  flex-direction: row;
-  align-items: center;
-  gap: 1.25rem;
-}
-.entry-wide .entry-go {
-  margin-left: auto;
-}
-.entry-icon {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  flex: none;
-  border-radius: 12px;
-  font-size: 1.3rem;
-  color: var(--on-accent);
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-}
-.entry-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border);
-}
-.entry-go {
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--accent-2);
-}
-.workbook-path {
-  margin-top: 1.5rem;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--muted);
 }
 
 /* budget grid */
@@ -396,17 +329,9 @@
 }
 
 @media (max-width: 900px) {
-  .entry-grid,
   .chart-row,
   .donut-wrap {
     grid-template-columns: 1fr;
-  }
-  .entry-wide {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .entry-wide .entry-go {
-    margin-left: 0;
   }
   .subnav {
     margin-left: 0;

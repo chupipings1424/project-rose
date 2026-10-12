@@ -1,19 +1,28 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAsync } from '../../hooks/useAsync'
-import { trackerApi } from './api/client'
-import { trackerPaths } from './paths'
+import { workbookApi } from './api/client'
 
-const TABS = [
-  { to: trackerPaths.overview, label: 'Overview', end: true },
-  { to: trackerPaths.payments, label: 'Payments', end: false },
-  { to: trackerPaths.budget, label: 'Budget', end: false },
-  { to: trackerPaths.report, label: 'Report', end: false },
-]
+export interface WorkbookTab {
+  to: string
+  label: string
+  /** true for the project's home tab, so it is not "active" on every sub-page */
+  end?: boolean
+}
 
-export function TrackerLayout() {
-  // A cheap "is the backend alive?" ping.
-  const health = useAsync(() => trackerApi.now(), [])
+interface WorkbookLayoutProps {
+  eyebrow: string
+  title: string
+  tabs: readonly WorkbookTab[]
+}
+
+/**
+ * The frame shared by the Payment Tracker and Budget projects: title, tabs,
+ * "Download Excel" and an "is the API alive?" banner. Each project passes its
+ * own title and tabs; the page itself renders in <Outlet/>.
+ */
+export function WorkbookLayout({ eyebrow, title, tabs }: WorkbookLayoutProps) {
+  const health = useAsync(() => workbookApi.now(), [])
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
 
@@ -21,7 +30,7 @@ export function TrackerLayout() {
     setDownloading(true)
     setDownloadError(null)
     try {
-      await trackerApi.download()
+      await workbookApi.download()
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : 'Download failed.')
     } finally {
@@ -33,12 +42,12 @@ export function TrackerLayout() {
     <div className="tracker">
       <div className="tracker-head no-print">
         <div>
-          <p className="eyebrow">Project 01</p>
-          <h1 className="display tracker-title">Payment Tracker</h1>
+          <p className="eyebrow">{eyebrow}</p>
+          <h1 className="display tracker-title">{title}</h1>
         </div>
-        <nav className="subnav" aria-label="Payment tracker">
-          {TABS.map((tab) => (
-            <NavLink key={tab.label} to={tab.to} end={tab.end}>
+        <nav className="subnav" aria-label={title}>
+          {tabs.map((tab) => (
+            <NavLink key={tab.label} to={tab.to} end={tab.end ?? false}>
               {tab.label}
             </NavLink>
           ))}

@@ -6,11 +6,11 @@ import { StatTile } from '../../../components/StatTile'
 import { ErrorState, LoadingState } from '../../../components/States'
 import { useToast } from '../../../components/toast/useToast'
 import { useAsync } from '../../../hooks/useAsync'
-import { trackerApi } from '../api/client'
-import type { Budget, BudgetLine, BudgetSection } from '../api/types'
+import { workbookApi } from '../../workbook/api/client'
+import type { Budget, BudgetLine, BudgetSection } from '../../workbook/api/types'
 import { CopyYearDialog, EditLineDialog, NewLineDialog } from '../components/BudgetDialogs'
 import { BudgetSectionTable } from '../components/BudgetSectionTable'
-import { ImportDialog } from '../components/ImportDialog'
+import { ImportDialog } from '../../workbook/components/ImportDialog'
 import { NetTable } from '../components/NetTable'
 import { useCurrency } from '../../../currency/useCurrency'
 
@@ -19,7 +19,7 @@ export default function BudgetPage() {
   const notify = useToast()
   const [params, setParams] = useSearchParams()
   const yearParam = params.get('year')
-  const budget = useAsync(() => trackerApi.budget(yearParam), [yearParam])
+  const budget = useAsync(() => workbookApi.budget(yearParam), [yearParam])
 
   const [newOpen, setNewOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)
@@ -46,7 +46,7 @@ export default function BudgetPage() {
 
   async function commitCell(line: BudgetLine, month: number, value: string) {
     try {
-      const result = await trackerApi.updateBudgetCell(line.id, month, value, year)
+      const result = await workbookApi.updateBudgetCell(line.id, month, value, year)
       apply(result.budget, 'Saved to Excel')
     } catch (error) {
       notify((error as Error).message, 'error')
@@ -58,7 +58,7 @@ export default function BudgetPage() {
     if (!deleting) return
     setDeleteBusy(true)
     try {
-      const result = await trackerApi.deleteBudgetLine(deleting.line.id, year)
+      const result = await workbookApi.deleteBudgetLine(deleting.line.id, year)
       apply(result.budget, 'Deleted from Excel')
       setDeleting(null)
     } catch (error) {
@@ -74,7 +74,7 @@ export default function BudgetPage() {
   async function confirmDeleteYear() {
     setDeletingYear(true)
     try {
-      const result = await trackerApi.deleteBudgetYear(year)
+      const result = await workbookApi.deleteBudgetYear(year)
       budget.setData(result.budget)
       setParams({})
       setDeleteYearOpen(false)
@@ -153,7 +153,7 @@ export default function BudgetPage() {
         knownGroups={data.known_groups}
         onClose={() => setNewOpen(false)}
         onSubmit={async (values) => {
-          const result = await trackerApi.addBudgetLine({ ...values, year })
+          const result = await workbookApi.addBudgetLine({ ...values, year })
           setNewOpen(false)
           apply(result.budget, 'Line added')
         }}
@@ -164,7 +164,7 @@ export default function BudgetPage() {
         knownGroups={editing ? data.known_groups[editing.section] ?? [] : []}
         onClose={() => setEditing(null)}
         onSubmit={async (line, changes) => {
-          const result = await trackerApi.updateBudgetLine(line.id, changes, year)
+          const result = await workbookApi.updateBudgetLine(line.id, changes, year)
           setEditing(null)
           apply(result.budget, 'Changes saved to Excel')
         }}
@@ -176,7 +176,7 @@ export default function BudgetPage() {
         currentYear={year}
         onClose={() => setCopyOpen(false)}
         onSubmit={async (from, to, includeAmounts) => {
-          const result = await trackerApi.copyBudgetYear(from, to, includeAmounts)
+          const result = await workbookApi.copyBudgetYear(from, to, includeAmounts)
           setCopyOpen(false)
           setParams({ year: String(to) })
           notify(`Copied ${result.copied} line(s)`, 'success')

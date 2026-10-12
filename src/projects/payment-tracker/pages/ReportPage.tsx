@@ -1,22 +1,14 @@
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { ProgressBar } from '../../../components/ProgressBar'
 import { StatTile, type Tone } from '../../../components/StatTile'
 import { ErrorState, LoadingState } from '../../../components/States'
 import { useCurrency } from '../../../currency/useCurrency'
-import { useAsync } from '../../../hooks/useAsync'
 import { shortDate } from '../../../lib/format'
-import { trackerApi } from '../api/client'
-import type { ReportSummary } from '../api/types'
+import type { ReportSummary } from '../../workbook/api/types'
+import { ActivityChart, ChartCard, RepaymentChart, StatusDonut } from '../../workbook/components/ReportCharts'
+import { ReportHead } from '../../workbook/components/ReportHead'
+import { useReport } from '../../workbook/useReport'
 import { trackerPaths } from '../paths'
-import {
-  ActivityChart,
-  CashFlowChart,
-  ChartCard,
-  ExpenseMix,
-  RepaymentChart,
-  StatusDonut,
-  TopItemsChart,
-} from '../components/ReportCharts'
 
 function daysLabel(days: number | null): string {
   if (days === null) return 'nothing scheduled'
@@ -38,23 +30,13 @@ function kpis(data: ReportSummary, compactMoney: (value: number) => string): { l
       tone: k.overdue_count ? 'danger' : 'ok',
     },
     { label: 'Next due', value: k.next_due ? shortDate(k.next_due) : '—', hint: daysLabel(k.days_until_due), tone: 'default' },
-    { label: `Revenue ${data.year}`, value: compactMoney(k.budget_revenue), hint: 'budgeted income', tone: 'ok' },
-    { label: `Expenses ${data.year}`, value: compactMoney(k.budget_expenses), hint: 'budgeted spend', tone: 'warn' },
-    {
-      label: `Net ${data.year}`,
-      value: compactMoney(k.budget_net),
-      hint: k.budget_net < 0 ? 'spending exceeds income' : 'income exceeds spending',
-      tone: k.budget_net < 0 ? 'danger' : 'ok',
-    },
-    { label: 'Budget lines', value: String(k.budget_lines), hint: `planned across ${data.year}`, tone: 'default' },
   ]
 }
 
+/** Payments only: the budget has its own report in the Budget project. */
 export default function ReportPage() {
   const { money, compactMoney } = useCurrency()
-  const [params, setParams] = useSearchParams()
-  const yearParam = params.get('year')
-  const report = useAsync(() => trackerApi.report(yearParam), [yearParam])
+  const { report, setYear } = useReport()
 
   if (report.loading && !report.data) return <LoadingState label="Crunching the numbers…" />
   if (report.error && !report.data) return <ErrorState error={report.error} onRetry={report.reload} />
@@ -63,44 +45,18 @@ export default function ReportPage() {
 
   return (
     <div className="stack report">
-      <section className="report-head">
-        <div>
-          <p className="eyebrow">Financial report</p>
-          <h2 className="display">Payments &amp; Budget · {data.year}</h2>
-          <p className="muted small">
-            Generated {new Date(data.generated_at).toLocaleString()} from <code>{data.workbook}</code>
-          </p>
-        </div>
-        <div className="button-row no-print">
-          <label className="inline">
-            <span className="field-label">Year</span>
-            <select value={data.year} onChange={(e) => setParams({ year: e.target.value })}>
-              {(data.years.length ? data.years : [data.year]).map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="button" className="btn ghost" onClick={() => window.print()}>
-            Print / PDF
-          </button>
-        </div>
-      </section>
+      <ReportHead title="Payments" data={data} onYear={setYear} />
 
-      {!data.has_data ? (
+      {data.kpis.accounts === 0 ? (
         <section className="card state-box">
           <strong className="display">Nothing to chart yet</strong>
           <p className="muted">
-            This report builds itself from the payments and budget lines in your workbook. Add an instalment plan or a
-            budget line and the charts will appear here.
+            This report builds itself from the instalment plans in your workbook. Add a title and the charts will appear
+            here.
           </p>
           <div className="button-row">
             <Link className="btn primary" to={trackerPaths.payments}>
-              Open payment tracker
-            </Link>
-            <Link className="btn ghost" to={trackerPaths.budget}>
-              Open budget
+              Open payments
             </Link>
           </div>
         </section>
@@ -122,23 +78,6 @@ export default function ReportPage() {
             </ChartCard>
             <ChartCard title="Where the plan stands" subtitle="Paid, scheduled and not-yet-scheduled shares of the plan total.">
               <StatusDonut data={data} />
-            </ChartCard>
-          </div>
-
-          <ChartCard
-            title="Budget cash flow"
-            subtitle={`Revenue against expenses each month of ${data.year}, with the running net.`}
-            wide
-          >
-            <CashFlowChart data={data} />
-          </ChartCard>
-
-          <div className="chart-row">
-            <ChartCard title="Expense mix" subtitle="Where the budgeted spend is concentrated.">
-              <ExpenseMix data={data} />
-            </ChartCard>
-            <ChartCard title="Largest line items" subtitle="Top budget entries by annual total.">
-              <TopItemsChart data={data} />
             </ChartCard>
           </div>
 

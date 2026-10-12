@@ -1,6 +1,9 @@
 /**
- * Where the login session is remembered (localStorage), kept apart from the
- * login logic so the HTTP helper can read the token without importing auth.
+ * Where the login session is remembered, kept apart from the login logic so the
+ * HTTP helper can read the token without importing auth.
+ *
+ * sessionStorage (not localStorage): it is forgotten when the tab or browser
+ * closes, so every time you open ROSE again it asks for the token.
  */
 
 export const SESSION_KEY = 'rose.session'
@@ -24,7 +27,7 @@ function isSession(value: unknown): value is Session {
 
 export function loadSession(now: number = Date.now()): Session | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY)
+    const raw = sessionStorage.getItem(SESSION_KEY)
     if (!raw) return null
     const parsed: unknown = JSON.parse(raw)
     // Sessions from older versions (no accessToken) are dropped too: just log in again.
@@ -39,12 +42,12 @@ export function loadSession(now: number = Date.now()): Session | null {
 }
 
 export function saveSession(session: Session): void {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session))
 }
 
 export function clearSession(): void {
   try {
-    localStorage.removeItem(SESSION_KEY)
+    sessionStorage.removeItem(SESSION_KEY)
   } catch {
     // nothing to clear
   }

@@ -19,7 +19,11 @@ import type {
 
 import { downloadFile, requestJson } from '../../../api/http'
 
-/** The payment tracker's part of the ROSE API (Vite proxies /api, see vite.config.ts). */
+/**
+ * The workbook part of the ROSE API (Vite proxies /api, see vite.config.ts).
+ * Payment Tracker and Budget are separate projects in the hub, but both live
+ * in the same payments.xlsx, so they share this one client.
+ */
 export const API_BASE = '/api/payment-tracker'
 
 const request = <T>(path: string, init?: RequestInit) => requestJson<T>(`${API_BASE}${path}`, init)
@@ -27,8 +31,8 @@ const request = <T>(path: string, init?: RequestInit) => requestJson<T>(`${API_B
 const json = (method: string, data: unknown): RequestInit => ({ method, body: JSON.stringify(data) })
 const yearQuery = (year?: number | string | null) => (year ? `?year=${encodeURIComponent(year)}` : '')
 
-/** Every endpoint of the payment tracker, fully typed. Components never call fetch directly. */
-export const trackerApi = {
+/** Every workbook endpoint, fully typed. Components never call fetch directly. */
+export const workbookApi = {
   homeStats: () => request<HomeStats>('/home-stats'),
   now: () => request<ServerNow>('/now'),
 

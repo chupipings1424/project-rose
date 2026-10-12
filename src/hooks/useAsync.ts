@@ -10,7 +10,7 @@ export interface AsyncState<T> {
  * Runs an async loader whenever `deps` change and tracks loading / error / data.
  * A generic hook: `T` is inferred from what the loader resolves to.
  *
- *   const accounts = useAsync(() => trackerApi.accounts(), [])
+ *   const accounts = useAsync(() => workbookApi.accounts(), [])
  *   accounts.data  // Account[] | undefined
  */
 export function useAsync<T>(loader: () => Promise<T>, deps: DependencyList) {

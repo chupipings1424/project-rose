@@ -3,16 +3,28 @@ import { createPortal } from 'react-dom'
 import { SoundIcon } from '../components/icons'
 import { GateDoor } from './GateDoor'
 import { ARRIVE_MS, DOOR_COUNT, GATE_MUTE_KEY, OPEN_MS, SKIP_MS, readGateMuted } from './gateConfig'
-import { DUST, FOREST_FAR, FOREST_NEAR } from './gateScenery'
+import { CITY_FAR, CITY_NEAR, DUNES_FAR, DUNES_NEAR, DUST, FOREST_FAR, FOREST_NEAR, RAIN } from './gateScenery'
+import { GATE_SKINS, currentGateSkin, type Horizon } from './gateSkins'
 import { createGateSound, type GateSound } from './gateSound'
 import './gate.css'
 
 type Phase = 'arrive' | 'opening' | 'leaving'
 
+const HORIZONS: Record<Exclude<Horizon, 'none'>, readonly [string, string]> = {
+  forest: [FOREST_FAR, FOREST_NEAR],
+  city: [CITY_FAR, CITY_NEAR],
+  dunes: [DUNES_FAR, DUNES_NEAR],
+}
+
 /**
- * The entrance after a successful login: a giant stone gate with seven nested
- * doors lands over the login page, its numbers light up, and it swings open
- * while the camera flies through into the app.
+ * The entrance after a successful login: a giant gate with seven nested doors
+ * lands over the login page, its numbers light up, and it swings open while the
+ * camera flies through into the app.
+ *
+ * The gate wears the current theme: a stone gate in a forest for Hunter, a
+ * neon city gate, a space-station blast door, the Gate of Truth... The
+ * structure is the same; gateSkins.ts picks the scenery and sound, and
+ * gate.css paints each skin with CSS custom properties.
  *
  * It is a small state machine driven by timers: arrive -> opening -> done
  * (or -> leaving -> done when skipped). All the motion itself is CSS; React
@@ -21,6 +33,10 @@ type Phase = 'arrive' | 'opening' | 'leaving'
 export function GateIntro({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<Phase>('arrive')
   const [muted, setMuted] = useState(readGateMuted)
+  // Read once: the theme can't change while the gate is up.
+  const [skin] = useState(currentGateSkin)
+  const look = GATE_SKINS[skin]
+  const horizon = look.horizon === 'none' ? null : HORIZONS[look.horizon]
   const soundRef = useRef<GateSound | null>(null)
   const skipRef = useRef<HTMLButtonElement>(null)
   const onDoneRef = useRef(onDone)
@@ -39,7 +55,7 @@ export function GateIntro({ onDone }: { onDone: () => void }) {
 
   // Sound: the login click a moment ago counts as the user gesture browsers require.
   useEffect(() => {
-    const sound = createGateSound(readGateMuted())
+    const sound = createGateSound(readGateMuted(), GATE_SKINS[currentGateSkin()].sound)
     soundRef.current = sound
     sound?.resume()
     sound?.doorClosed()
@@ -91,6 +107,7 @@ export function GateIntro({ onDone }: { onDone: () => void }) {
     <div
       className="gate"
       data-phase={phase}
+      data-skin={skin}
       style={{ '--door': wideOpen ? DOOR_COUNT : 0 } as CSSProperties}
       role="dialog"
       aria-modal="true"
@@ -98,19 +115,36 @@ export function GateIntro({ onDone }: { onDone: () => void }) {
     >
       <div className="gate-world">
         <div className="gate-sky" />
+        {look.stars && <div className="gate-stars" />}
         <div className="gate-moon" />
-        <svg className="gate-forest gate-forest--far" viewBox="0 0 1600 300" preserveAspectRatio="none" aria-hidden="true">
-          <path d={FOREST_FAR} />
-        </svg>
-        <svg className="gate-forest gate-forest--near" viewBox="0 0 1600 300" preserveAspectRatio="none" aria-hidden="true">
-          <path d={FOREST_NEAR} />
-        </svg>
+        {look.rain && (
+          <div className="gate-rain" aria-hidden="true">
+            {RAIN.map((column, i) => (
+              <span
+                key={i}
+                style={{ left: `${column.left}%`, animationDelay: `${column.delay}s`, animationDuration: `${column.duration}s` }}
+              >
+                {column.text}
+              </span>
+            ))}
+          </div>
+        )}
+        {horizon && (
+          <>
+            <svg className="gate-forest gate-forest--far" viewBox="0 0 1600 300" preserveAspectRatio="none" aria-hidden="true">
+              <path d={horizon[0]} />
+            </svg>
+            <svg className="gate-forest gate-forest--near" viewBox="0 0 1600 300" preserveAspectRatio="none" aria-hidden="true">
+              <path d={horizon[1]} />
+            </svg>
+          </>
+        )}
         <div className="gate-fog gate-fog--back" />
 
         <div className="gate-wall">
           <div className="gate-wall__cap" />
           <div className="gate-portal">
-            <div className="gate-beyond" />
+            <div className="gate-beyond">{look.eye && <div className="gate-eye" />}</div>
             <div className="gate-doors">
               <div className="gate-leaf" data-side="left">
                 <GateDoor door={DOOR_COUNT} side="left" lit={wideOpen} wideOpen={wideOpen} />
@@ -147,7 +181,10 @@ export function GateIntro({ onDone }: { onDone: () => void }) {
           </div>
         </div>
 
-        <div className="gate-ground" />
+        <div className="gate-ground">
+          {look.grid && <div className="gate-floor-grid" />}
+          {look.circle && <div className="gate-circle" />}
+        </div>
         <div className="gate-fog gate-fog--front" />
         <div className="gate-rays" />
       </div>
@@ -161,7 +198,7 @@ export function GateIntro({ onDone }: { onDone: () => void }) {
           Access granted
         </h1>
         <p className="gate-sub" aria-live="polite">
-          {phase === 'arrive' ? 'The gate recognises you\u2026' : 'Opening the gate'}
+          {phase === 'arrive' ? look.lines[0] : look.lines[1]}
         </p>
       </header>
 

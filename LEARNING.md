@@ -43,7 +43,7 @@ Things to notice:
 - Lists need a stable `key`: see `.map(...)` in `PaymentsTable.tsx`.
 - Conditional rendering: `{showForm && <PaymentForm ... />}` in `PaymentsPage.tsx`.
 
-**Try it:** add a `hint` to one of the StatTiles on the Overview page.
+**Try it:** add a `hint` to one of the StatTiles on the Payment Tracker report (`ReportPage.tsx`).
 
 ---
 
@@ -152,8 +152,9 @@ or the sound works. That is the **dependency inversion** idea from SOLID, in Rea
 - **ProtectedRoute** (`src/auth/ProtectedRoute.tsx`) redirects to `/login` and
   remembers where you wanted to go (`state.from`).
 - **Nested routes**: `/projects/payment-tracker/*` hands the rest of the URL to
-  `PaymentTrackerApp.tsx`, which has its own `<Routes>` and its own layout
-  (`TrackerLayout.tsx` with `<NavLink>`s).
+  `PaymentTrackerApp.tsx`, which has its own `<Routes>` inside a shared layout
+  (`workbook/WorkbookLayout.tsx`: it takes the title and the tabs as props, so Payment
+  Tracker and Personal Budget reuse it with their own `<NavLink>`s).
 - **URL state**: `PaymentsPage.tsx` stores the selected title in the query string
   with `useSearchParams`, so you can bookmark or refresh it.
 - **Code splitting**: `lazy(() => import(...))` + `<Suspense fallback>`. The tracker
@@ -190,9 +191,10 @@ All data comes from the **ROSE API**, a separate .NET 9 project
   `Authorization: Bearer <session token>`, turns "server not running" into a friendly
   message, and on **401** clears the session and fires `rose:unauthorized`, which
   `AuthProvider` listens for to send you back to the login page.
-- Each project has its own typed client (`payment-tracker/api/client.ts`,
-  `reminders/api/client.ts`). Components call `trackerApi.summary(title)` and get typed
-  data back; they never call `fetch` themselves.
+- Each API area has its own typed client (`workbook/api/client.ts`,
+  `reminders/api/client.ts`). Components call `workbookApi.summary(title)` and get typed
+  data back; they never call `fetch` themselves. Payment Tracker and Personal Budget both
+  import `workbookApi`: two features, one data source, one client.
 - **Error messages come from the server.** The API answers errors as RFC 7807
   *problem details* (`{ title, status, detail }`), and `errorMessage()` shows the `detail`.
 - **snake_case vs camelCase.** The API speaks `due_at`; the reminders page uses `dueAt`.
@@ -214,7 +216,7 @@ All data comes from the **ROSE API**, a separate .NET 9 project
   cell away and creates a fresh one with fresh state. No effect is needed.
 - **Mount only when open:** `Modal.tsx` renders children only while open, so
   forms inside start clean each time.
-- **Theme-aware charts:** `ReportCharts.tsx` colours use `var(--c1)` etc., so
+- **Theme-aware charts:** `workbook/components/ReportCharts.tsx` colours use `var(--c1)` etc., so
   charts recolour when you switch theme.
 - **Open/Closed hub:** `ProjectsHubPage.tsx` just loops over `PROJECTS`. Adding a
   project never touches the hub.
@@ -305,6 +307,12 @@ Ideas worth learning:
    gate opens straight after the login click, so the `AudioContext` it creates is allowed.
 8. **Testing time.** `vi.useFakeTimers()` lets `GateIntro.test.tsx`
    fast-forward the whole animation in milliseconds.
+9. **One component, many skins.** Every theme gets its own gate, but there is still only
+   one `GateIntro`. `gateSkins.ts` maps each theme to a small config (scenery, extras like
+   stars or code rain, a sound profile, two status lines). `gate.css` reads every colour and
+   material from `--g-*` CSS variables, and each `.gate[data-skin='matrix']` block only
+   overrides those variables. Adding a skin is data, not new code: the *Open/Closed
+   principle* again. `gateSkins.test.ts` checks that every theme has a skin and a sound.
 
 ## 11. Testing
 
@@ -335,8 +343,11 @@ TDD loop (Kent Beck): write a failing test → make it pass → refactor.
 3. If it matches, the API returns a **JWT** (JSON Web Token): a small signed note saying
    "this session is valid until ...". It is signed with a key only the API knows
    (`data/session-signing.key`), so the browser cannot forge or extend it.
-4. `authService.ts` keeps it in `localStorage` (`rose.session`) and `apiFetch()` sends it
+4. `authService.ts` keeps it in `sessionStorage` (`rose.session`) and `apiFetch()` sends it
    with every request. The API rejects any request without a valid one (**401**).
+   `sessionStorage` is like `localStorage`, but it is wiped when the browser closes, so
+   closing the browser logs you out. Your theme stays in `localStorage` because it should
+   survive.
 5. After 12 hours (or if the key changes) the API answers 401 and ROSE returns to the login page.
 
 Nothing secret is in the JavaScript bundle any more: search the built files and you will not
@@ -346,7 +357,7 @@ find the token.
 restart `npm start`. To log every device out, delete `data/session-signing.key` and restart.
 
 **Possible next step:** keep the session in an **httpOnly cookie** instead of
-`localStorage`, so JavaScript (including any injected script) cannot read it.
+`sessionStorage`, so JavaScript (including any injected script) cannot read it.
 
 ---
 
@@ -372,7 +383,7 @@ restart `npm start`. To log every device out, delete `data/session-signing.key` 
 
 ## 14. Reminders: a background service, Web Push and service workers
 
-Project 02 needs code that runs **when no page is open**: something has to watch the clock
+Project 03 needs code that runs **when no page is open**: something has to watch the clock
 and ring. That lives in the API as a .NET `BackgroundService` (`ReminderWorker`) that ticks
 every 15 seconds. The rules (repeat, snooze, "the 31st rings on the last day of short
 months") are pure functions that take the time as an argument, so the API's tests can ask
@@ -403,6 +414,24 @@ does nothing else (no offline caching), which keeps it simple and avoids stale-c
 `display: standalone`) plus the `apple-touch-icon` lets Edge's *Install app* turn
 ROSE into its own window with an icon. (On iPhone, web push only works for apps added to
 the Home Screen.)
+
+**Closing ROSE when the last tab closes (`src/lifetime/`).** A browser cannot reliably tell
+a server "I am closing" (the page may be killed first). So ROSE flips it around:
+
+1. Every open tab holds one long-lived request, `GET /api/system/presence`. The API answers
+   with a **Server-Sent Events** stream and never finishes it.
+2. The API counts the open streams (`PresenceTracker`). When a tab closes, the browser drops
+   the connection and the count goes down. No goodbye message is needed.
+3. A `BackgroundService` (`ShutdownWatchdog`) sees the count at 0, waits 20 seconds (a page
+   refresh reconnects within that time), then calls `StopApplication()`.
+4. `scripts/dev.mjs` notices that the API process exited and stops Vite, so the terminal
+   window closes too.
+
+The power button does the same thing on purpose: `POST /api/system/shutdown`. It needs an
+`X-Rose-Client` header, and a plain link or form from another website cannot add custom
+headers. That blocks a cheap *CSRF* trick where some other page shuts ROSE down.
+`keepPresence()` in `lifetime/system.ts` reconnects after 3 seconds if the stream breaks.
+That is an `async` loop stopped by an `AbortSignal`, the standard way to cancel `fetch`.
 
 ---
 

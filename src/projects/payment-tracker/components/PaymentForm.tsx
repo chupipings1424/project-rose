@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useToast } from '../../../components/toast/useToast'
 import { nowTime, todayIso } from '../../../lib/format'
-import { trackerApi } from '../api/client'
-import type { PaymentStatus, Summary } from '../api/types'
+import { workbookApi } from '../../workbook/api/client'
+import type { PaymentStatus, Summary } from '../../workbook/api/types'
 
 interface Props {
   summary: Summary
@@ -22,7 +22,7 @@ export function PaymentForm({ summary, onSaved }: Props) {
   // Pre-fill date & time from the server clock (same as the original app).
   async function fillNow() {
     try {
-      const now = await trackerApi.now()
+      const now = await workbookApi.now()
       setDate(now.date)
       setTime(now.time)
     } catch {
@@ -34,7 +34,7 @@ export function PaymentForm({ summary, onSaved }: Props) {
   // State already starts at the local time; this swaps in the server clock once it answers.
   useEffect(() => {
     let cancelled = false
-    trackerApi.now().then(
+    workbookApi.now().then(
       (now) => {
         if (cancelled) return
         setDate(now.date)
@@ -51,7 +51,7 @@ export function PaymentForm({ summary, onSaved }: Props) {
     event.preventDefault()
     setSaving(true)
     try {
-      const result = await trackerApi.addPayment({
+      const result = await workbookApi.addPayment({
         title: summary.title,
         amount,
         date,

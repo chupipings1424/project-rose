@@ -27,7 +27,7 @@ describe('http', () => {
     await expect(apiFetch('/api/x')).rejects.toThrow(/session has ended/)
 
     expect(listener).toHaveBeenCalledOnce()
-    expect(localStorage.getItem(SESSION_KEY)).toBeNull()
+    expect(sessionStorage.getItem(SESSION_KEY)).toBeNull()
     window.removeEventListener(UNAUTHORIZED_EVENT, listener)
   })
 

@@ -112,7 +112,7 @@ export default function RemindersApp() {
     <div className="reminders">
       <div className="tracker-head">
         <div>
-          <p className="eyebrow">Project 02</p>
+          <p className="eyebrow">Project 03</p>
           <h1 className="display tracker-title">Reminders</h1>
         </div>
       </div>

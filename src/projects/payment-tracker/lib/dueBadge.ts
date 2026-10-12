@@ -1,4 +1,4 @@
-import type { Summary } from '../api/types'
+import type { Summary } from '../../workbook/api/types'
 
 export type DueTone = 'clear' | 'neutral' | 'overdue' | 'due'
 

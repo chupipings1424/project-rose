@@ -5,6 +5,10 @@
 //   2. the Vite dev server for this React app
 //
 // Settings come from .env (Node loads it via --env-file-if-exists).
+//
+// Auto-close: the API started here shuts itself down 20 seconds after the last
+// ROSE tab closes (or when you press the power button). When the API stops,
+// this script stops Vite and exits too. Set ROSE_AUTO_CLOSE=0 to keep it running.
 import { spawn, spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
@@ -14,6 +18,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const apiUrl = process.env.ROSE_API_URL ?? 'http://127.0.0.1:5175'
 const apiDir = path.resolve(root, process.env.ROSE_API_DIR ?? '../project-rose-api')
 const apiProject = path.join(apiDir, 'src', 'Rose.Api')
+const autoClose = process.env.ROSE_AUTO_CLOSE !== '0'
 const children = []
 
 const colors = { api: '\x1b[35m', rose: '\x1b[36m', reset: '\x1b[0m' }
@@ -41,7 +46,8 @@ function run(name, cmd, args, options = {}) {
   child.stderr.on('data', forward)
   child.on('exit', (code) => {
     log(name, `stopped (exit code ${code})`)
-    if (name === 'rose') shutdown(code ?? 0)
+    // Either half stopping means ROSE is closing: stop the other half too.
+    shutdown(code ?? 0)
   })
   children.push(child)
   return child
@@ -108,10 +114,8 @@ async function startApi() {
   migrateOldData(path.join(apiDir, 'data'))
 
   log('api', 'building (the first time takes a minute)...')
-  const build = spawnSync('dotnet', ['build', apiProject, '-c', 'Debug', '-nologo', '-v', 'q'], {
-    stdio: 'inherit',
-    shell: true,
-  })
+  // No shell here: the folder path may contain spaces (e.g. OneDrive - Company).
+  const build = spawnSync('dotnet', ['build', apiProject, '-c', 'Debug', '-nologo', '-v', 'q'], { stdio: 'inherit' })
   if (build.status !== 0) {
     log('api', 'Build failed - see the errors above.')
     return
@@ -121,10 +125,17 @@ async function startApi() {
   // The working folder is the project, so appsettings*.json and ../../data are found.
   const child = run('api', 'dotnet', [path.join('bin', 'Debug', 'net9.0', 'Rose.Api.dll')], {
     cwd: apiProject,
-    env: { ...process.env, ASPNETCORE_ENVIRONMENT: 'Development', URLS: apiUrl },
+    env: {
+      ...process.env,
+      ASPNETCORE_ENVIRONMENT: 'Development',
+      URLS: apiUrl,
+      Shutdown__Enabled: String(autoClose),
+    },
   })
-  if (await waitForApi(child, 60)) log('api', `ready - Swagger UI at ${apiUrl}/swagger`)
-  else log('api', 'did not start - see the messages above.')
+  if (await waitForApi(child, 60)) {
+    log('api', `ready - Swagger UI at ${apiUrl}/swagger`)
+    if (autoClose) log('api', 'ROSE closes itself 20 seconds after the last ROSE tab is closed.')
+  } else log('api', 'did not start - see the messages above.')
 }
 
 await startApi()

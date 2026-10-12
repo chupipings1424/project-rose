@@ -28,7 +28,7 @@ describe('authService', () => {
     const result = await login('nope')
 
     expect(result).toEqual({ ok: false, error: 'Access denied - that token is not valid.' })
-    expect(localStorage.getItem(SESSION_KEY)).toBeNull()
+    expect(sessionStorage.getItem(SESSION_KEY)).toBeNull()
   })
 
   it('rejects an empty token without calling the API', async () => {
@@ -48,16 +48,22 @@ describe('authService', () => {
     await login(TEST_TOKEN)
 
     expect(loadSession(Date.parse('2099-01-01T00:00:00.001Z'))).toBeNull()
-    expect(localStorage.getItem(SESSION_KEY)).toBeNull()
+    expect(sessionStorage.getItem(SESSION_KEY)).toBeNull()
   })
 
   it('drops sessions saved by older versions (no access token)', () => {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ authenticatedAt: 1, expiresAt: Date.now() + 60_000 }))
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ authenticatedAt: 1, expiresAt: Date.now() + 60_000 }))
     expect(loadSession()).toBeNull()
   })
 
+  it('keeps the login in sessionStorage, so it ends when the browser closes', async () => {
+    await login(TEST_TOKEN)
+    expect(sessionStorage.getItem(SESSION_KEY)).not.toBeNull()
+    expect(localStorage.getItem(SESSION_KEY)).toBeNull()
+  })
+
   it('ignores corrupted session data', () => {
-    localStorage.setItem(SESSION_KEY, '{not json')
+    sessionStorage.setItem(SESSION_KEY, '{not json')
     expect(loadSession()).toBeNull()
   })
 

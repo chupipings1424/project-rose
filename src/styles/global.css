@@ -1056,6 +1056,50 @@ tfoot td {
   }
 }
 
+/* ---------- power button (close ROSE) ---------- */
+.power-btn {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 90;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0.65;
+  transition:
+    opacity 0.2s,
+    color 0.2s,
+    box-shadow 0.2s,
+    border-color 0.2s;
+}
+.power-btn:hover,
+.power-btn:focus-visible {
+  opacity: 1;
+  color: var(--danger);
+  border-color: var(--danger);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--danger) 55%, transparent);
+}
+.rose-closed {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.6rem;
+  text-align: center;
+  background: var(--bg);
+  color: var(--text);
+}
+.rose-closed svg {
+  color: var(--danger);
+}
 /* ---------- states ---------- */
 .state-box {
   display: flex;

@@ -16,6 +16,34 @@ describe('GateIntro', () => {
   afterEach(() => {
     vi.useRealTimers()
     document.getElementById('root')?.remove()
+    delete document.documentElement.dataset.theme
+  })
+
+  it('wears the Zoldyck stone gate when no theme is set', () => {
+    render(<GateIntro onDone={() => {}} />)
+    expect(gate()).toHaveAttribute('data-skin', 'hunter')
+    expect(document.querySelectorAll('.gate-forest')).toHaveLength(2)
+    expect(screen.getByText('The gate recognises you\u2026')).toBeInTheDocument()
+  })
+
+  it('follows the theme: the Gate of Truth for Fullmetal Alchemist', () => {
+    document.documentElement.dataset.theme = 'alchemist'
+    render(<GateIntro onDone={() => {}} />)
+
+    expect(gate()).toHaveAttribute('data-skin', 'alchemist')
+    expect(document.querySelector('.gate-circle')).not.toBeNull()
+    expect(document.querySelector('.gate-eye')).not.toBeNull()
+    expect(document.querySelector('.gate-forest')).toBeNull()
+
+    act(() => vi.advanceTimersByTime(ARRIVE_MS))
+    expect(screen.getByText('The Gate of Truth opens')).toBeInTheDocument()
+  })
+
+  it('rains code for the Matrix theme', () => {
+    document.documentElement.dataset.theme = 'matrix'
+    render(<GateIntro onDone={() => {}} />)
+    expect(gate()).toHaveAttribute('data-skin', 'matrix')
+    expect(document.querySelectorAll('.gate-rain span').length).toBeGreaterThan(20)
   })
 
   it('makes the app behind it inert until the gate is gone', () => {

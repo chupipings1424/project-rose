@@ -1,8 +1,9 @@
-import { trackerApi } from './payment-tracker/api/client'
+import { BUDGET_BASE } from './budget/paths'
 import { TRACKER_BASE } from './payment-tracker/paths'
 import { remindersApi } from './reminders/api/client'
 import { friendlyTime } from './reminders/lib/time'
 import { REMINDERS_BASE } from './reminders/paths'
+import { workbookApi } from './workbook/api/client'
 
 /** A stat is either ready-made text or a money amount the hub formats in the chosen currency. */
 export type ProjectStat = { label: string; value: string } | { label: string; amount: number }
@@ -30,17 +31,34 @@ export const PROJECTS: ProjectInfo[] = [
   {
     id: 'payment-tracker',
     name: 'Payment Tracker',
-    tagline: 'Loans · Budget · Reports',
+    tagline: 'Loans · Instalments · Report',
     description:
-      'Track instalment plans, log payments, plan a yearly budget and chart it all. Backed by your payments.xlsx workbook.',
+      'Track instalment plans and loans, log each payment, watch the balance fall and chart your repayments.',
     path: TRACKER_BASE,
     icon: '◉',
     loadStats: async () => {
-      const stats = await trackerApi.homeStats()
+      const stats = await workbookApi.homeStats()
       return [
         { label: 'Titles', value: String(stats.payments.accounts) },
         { label: 'Tracked', amount: stats.payments.total },
         { label: 'Next due', value: stats.payments.next_due ?? 'None' },
+      ]
+    },
+  },
+  {
+    id: 'budget',
+    name: 'Personal Budget',
+    tagline: 'Revenue · Expenses · Cash flow',
+    description:
+      'Plan a full year month by month: revenue and expenses in sections, running totals and a cash-flow report.',
+    path: BUDGET_BASE,
+    icon: '▣',
+    loadStats: async () => {
+      const { budget } = await workbookApi.homeStats()
+      return [
+        { label: 'Revenue', amount: budget.revenue },
+        { label: 'Expenses', amount: budget.expenses },
+        { label: `Net ${budget.year}`, amount: budget.net },
       ]
     },
   },
@@ -67,7 +85,8 @@ export const PROJECTS: ProjectInfo[] = [
         { label: 'Next', value: next ? friendlyTime(next) : 'None' },
       ]
     },
-  },  {
+  },
+  {
     id: 'coming-soon',
     name: 'Next project',
     tagline: 'Slot reserved',

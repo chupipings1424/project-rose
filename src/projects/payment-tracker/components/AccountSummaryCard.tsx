@@ -1,7 +1,7 @@
 import { ProgressBar } from '../../../components/ProgressBar'
 import { StatTile } from '../../../components/StatTile'
 import { longDate, shortDate } from '../../../lib/format'
-import type { Summary } from '../api/types'
+import type { Summary } from '../../workbook/api/types'
 import { dueBadge } from '../lib/dueBadge'
 import { useCurrency } from '../../../currency/useCurrency'
 

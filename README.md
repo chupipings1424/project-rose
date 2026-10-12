@@ -8,8 +8,9 @@ Log in with an access token, pick a theme, walk through the gate, and launch you
 
 | # | Project | What it shows off |
 | --- | --- | --- |
-| 01 | **Payment Tracker** | A full React rebuild of a Flask + Excel app: loans, payments, budget, charts, import/export |
-| 02 | **Reminders** | Repeat rules, a Windows always-on-top alarm popup and **Web Push** notifications (iPhone too) |
+| 01 | **Payment Tracker** | A React rebuild of a Flask + Excel app: loans, instalments, payment report, import/export |
+| 02 | **Personal Budget** | Revenue and expense lines, net per month, a budget report. Same Excel workbook as 01 |
+| 03 | **Reminders** | Repeat rules, a Windows always-on-top alarm popup and **Web Push** notifications (iPhone too) |
 
 **Tech:** React 19, TypeScript (strict), Vite, React Router, Recharts, Vitest + Testing
 Library, oxlint, Service Workers, PWA manifest. Backend: ASP.NET Core 9, Swagger, JWT, xUnit
@@ -46,8 +47,8 @@ npm install      # first time only
 npm start        # ROSE API + ROSE UI
 ```
 
-Or double-click **`start-rose.bat`**: it opens the API in one window, waits until it is ready,
-then opens the UI in a second window and your browser. Close a window to stop that part.
+Or double-click **`start-rose.bat`**: it runs `npm start` in **one minimized window**, which
+starts the API, then the UI, then opens your browser.
 
 Open <http://localhost:5180> and log in with your access token.
 The API documentation (Swagger UI) is at <http://127.0.0.1:5175/swagger>.
@@ -61,6 +62,23 @@ The API documentation (Swagger UI) is at <http://127.0.0.1:5175/swagger>.
    (set `ROSE_NO_OPEN=1` to skip)
 
 `Ctrl+C` stops both.
+
+### Closing ROSE
+
+You never have to hunt for the terminal window:
+
+- **Close the last ROSE browser tab**, and about **20 seconds** later the API, the UI and the
+  window all stop. (Each open tab keeps a small live connection to `/api/system/presence`.
+  When the last one is gone, the API waits 20 s, so a page refresh does not count, then
+  shuts down. `npm start` notices and stops Vite too.)
+- Or click the small **power button (⏻)** in the bottom-left corner of any page and confirm.
+
+Your login lives in `sessionStorage`, so it is forgotten when the browser closes: next time
+you go through the token page and the gate again.
+
+While ROSE is closed, reminders do not ring and phone push does not arrive. They ring as soon
+as you start it again. To keep ROSE running in the background, set `ROSE_AUTO_CLOSE=0`.
+Then the power button is hidden and closing the browser leaves everything running.
 
 ### Moving from the old Flask + Node setup
 
@@ -85,6 +103,7 @@ Copy `.env.example` to `.env` and edit it. `.env` is git-ignored.
 | `ROSE_API_DIR` | Where project-rose-api is cloned (default `../project-rose-api`). |
 | `PAYMENT_TRACKER_DIR` | Only used once, to copy `payments.xlsx` into the API. |
 | `ROSE_NO_OPEN` | `1` = do not open the browser. |
+| `ROSE_AUTO_CLOSE` | `0` = keep running when the last tab closes (default: close after 20 s). |
 
 The access token, session length, reminder and push settings live in the API: see its README.
 
@@ -108,6 +127,23 @@ flies through and you arrive at your projects.
 - It is skipped automatically if your OS asks for *reduced motion*. While
   developing, add `?nogate` to the URL to skip it.
 
+**Every theme has its own gate.** The doors, the scenery, the light beyond and the sound
+change with the theme:
+
+| Theme | Gate | Sound |
+| --- | --- | --- |
+| Hunter x Hunter | the original stone Testing Gate in a forest | stone thud and rumble |
+| Neon Cyberpunk | neon blast doors in a night city with a perspective grid floor | synth bass and zaps |
+| Deep Space | airlock under the stars | hydraulic hiss and hum |
+| Matrix | green code rain over a data vault | digital bleeps |
+| Solar Flare | sun temple in the dunes | deep gong |
+| Hologram | glass light doors | crystal chimes |
+| Fullmetal Alchemist | the **Gate of Truth**: the eye opens over a glowing transmutation circle | heartbeat and choir |
+| Death Note | gothic black doors, blood-red light | church bells |
+
+All skins share one gate component. Each skin only sets CSS variables (`--g-*`) and turns on
+a few extras. See `src/intro/gateSkins.ts`.
+
 ## Themes
 
 Pick a theme on the login page or from the top bar. It is saved in your browser.
@@ -125,7 +161,19 @@ Pick the display currency in the top bar: **₱ PHP (default)**, $ USD, A$ AUD o
 It only changes the symbol and formatting. Amounts are never converted. The choice is
 saved in your browser. (The Excel workbook keeps its own number format.)
 
-## Reminders (Project 02)
+## Payment Tracker and Personal Budget (Projects 01 and 02)
+
+Both read the same Excel workbook through the API, but they are separate projects on the hub:
+
+- **Payment Tracker**: *Payments* (titles, instalments, record payments) and a *Report*
+  (KPIs, repayment progress, monthly activity, status, upcoming dues).
+- **Personal Budget**: *Budget* (revenue and expense lines, monthly net) and a *Report*
+  (cash flow, expense mix, top items).
+
+Each report has a year picker and a Print button. Shared code (the API client, layout, charts,
+import dialog) lives in `src/projects/workbook/`.
+
+## Reminders (Project 03)
 
 Reminders with a date and time, optionally repeating (**daily**, **weekdays**, **weekly on
 chosen days**, **monthly**). The API checks every 15 seconds; when one is due it:
@@ -145,8 +193,8 @@ to their next time automatically.
 ```
 
 The scheduler is a .NET `BackgroundService` inside the API. Everything runs on this PC only:
-the API listens on `127.0.0.1`. The PC must be on with `npm start` running; reminders that
-fall due while it is off ring as soon as it starts again.
+the API listens on `127.0.0.1`. ROSE must be running (see *Closing ROSE*). Reminders that
+fall due while it is closed ring as soon as it starts again.
 
 ## Scripts
 
@@ -167,9 +215,10 @@ src/
                         (Router > Theme > Currency > Auth > Toast > Entrance)
   App.tsx               routes (login, protected shell, lazy projects)
   api/http.ts           apiFetch: adds the session token, friendly errors, 401 = log out
-  auth/                 login against the API, session storage, AuthProvider, ProtectedRoute
+  auth/                 login against the API, sessionStorage session, AuthProvider, ProtectedRoute
   theme/                8 themes (5 futuristic + 3 anime), ThemeProvider, ThemePicker
-  intro/                the login gate (EntranceProvider, GateIntro, GateDoor, gate.css, Web Audio)
+  intro/                the login gate (GateIntro, gateSkins per theme, gate.css, Web Audio sounds)
+  lifetime/             PowerControl: presence connection, power button, auto-close
   currency/             display currency (₱ PHP default, $ USD, A$ AUD, € EUR)
   components/           shared UI: AppShell, Modal, toasts, stat tiles, states
   hooks/                useAsync, useDebouncedValue, useNow
@@ -179,7 +228,9 @@ src/
   pages/                LoginPage, ProjectsHubPage, NotFoundPage
   projects/
     registry.ts         the list of projects shown on the hub
-    payment-tracker/    api client + types, pages, components, styles
+    workbook/           shared by the next two: Excel API client + types, layout, charts, import
+    payment-tracker/    Payments + Report pages and their components
+    budget/             Budget + Report pages and their components
     reminders/          Reminders page, form, model.ts (types), push opt-in (lib/push.ts)
   styles/global.css     design system + theme CSS variables
 public/

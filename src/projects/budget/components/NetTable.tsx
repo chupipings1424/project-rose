@@ -1,4 +1,4 @@
-import type { Budget } from '../api/types'
+import type { Budget } from '../../workbook/api/types'
 import { useCurrency } from '../../../currency/useCurrency'
 
 export function NetTable({ budget }: { budget: Budget }) {

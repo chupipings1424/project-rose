@@ -3,8 +3,8 @@ import { Modal } from '../../../components/Modal'
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 import { useCurrency } from '../../../currency/useCurrency'
 import { shortDate, todayIso } from '../../../lib/format'
-import { trackerApi } from '../api/client'
-import { FREQUENCIES, type AmountMode, type SchedulePayload, type SchedulePreview } from '../api/types'
+import { workbookApi } from '../../workbook/api/client'
+import { FREQUENCIES, type AmountMode, type SchedulePayload, type SchedulePreview } from '../../workbook/api/types'
 
 interface Props {
   open: boolean
@@ -43,7 +43,7 @@ function NewTitleForm({ onCancel, onCreated }: { onCancel: () => void; onCreated
   const planKey = useDebouncedValue(JSON.stringify(plan), 250)
 
   useEffect(() => {
-    trackerApi.now().then((now) => setStartDate(now.date), () => undefined)
+    workbookApi.now().then((now) => setStartDate(now.date), () => undefined)
   }, [])
 
   // Live, server-computed preview of the schedule.
@@ -51,7 +51,7 @@ function NewTitleForm({ onCancel, onCreated }: { onCancel: () => void; onCreated
     const payload = JSON.parse(planKey) as SchedulePayload
     if (!payload.amount || !payload.instalments) return
     let cancelled = false
-    trackerApi.previewSchedule(payload).then(
+    workbookApi.previewSchedule(payload).then(
       (p) => !cancelled && setPreview(p),
       (err: Error) => !cancelled && setPreview(err.message),
     )
@@ -74,7 +74,7 @@ function NewTitleForm({ onCancel, onCreated }: { onCancel: () => void; onCreated
     setSaving(true)
     setError(null)
     try {
-      await trackerApi.createAccount({ title: title.trim(), notes, ...plan })
+      await workbookApi.createAccount({ title: title.trim(), notes, ...plan })
       onCreated(title.trim())
     } catch (err) {
       setError((err as Error).message)

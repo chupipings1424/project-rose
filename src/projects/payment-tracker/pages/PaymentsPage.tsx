@@ -5,10 +5,10 @@ import { TrashIcon } from '../../../components/icons'
 import { ErrorState, LoadingState } from '../../../components/States'
 import { useToast } from '../../../components/toast/useToast'
 import { useAsync } from '../../../hooks/useAsync'
-import { trackerApi } from '../api/client'
-import type { Payment, Summary } from '../api/types'
+import { workbookApi } from '../../workbook/api/client'
+import type { Payment, Summary } from '../../workbook/api/types'
 import { AccountSummaryCard } from '../components/AccountSummaryCard'
-import { ImportDialog } from '../components/ImportDialog'
+import { ImportDialog } from '../../workbook/components/ImportDialog'
 import { NewTitleDialog } from '../components/NewTitleDialog'
 import { PaymentForm } from '../components/PaymentForm'
 import { PaymentsTable } from '../components/PaymentsTable'
@@ -21,9 +21,9 @@ export default function PaymentsPage() {
   const [params, setParams] = useSearchParams()
   const selected = params.get('title') ?? ''
 
-  const accounts = useAsync(() => trackerApi.accounts(), [])
+  const accounts = useAsync(() => workbookApi.accounts(), [])
   const summary = useAsync<Summary | null>(
-    () => (selected ? trackerApi.summary(selected) : Promise.resolve(null)),
+    () => (selected ? workbookApi.summary(selected) : Promise.resolve(null)),
     [selected],
   )
 
@@ -45,7 +45,7 @@ export default function PaymentsPage() {
     if (!summary.data) return
     try {
       const next = payment.status === 'Paid' ? 'Unpaid' : 'Paid'
-      const result = await trackerApi.setPaymentStatus(payment.id, next, summary.data.title)
+      const result = await workbookApi.setPaymentStatus(payment.id, next, summary.data.title)
       summary.setData(result.summary)
     } catch (error) {
       notify((error as Error).message, 'error')
@@ -56,7 +56,7 @@ export default function PaymentsPage() {
     if (!pendingDelete) return
     setDeleting(true)
     try {
-      await trackerApi.deletePayment(pendingDelete.id)
+      await workbookApi.deletePayment(pendingDelete.id)
       summary.reload()
       notify('Payment deleted', 'success')
     } catch (error) {
@@ -71,7 +71,7 @@ export default function PaymentsPage() {
     if (!selected) return
     setDeletingTitle(true)
     try {
-      const result = await trackerApi.deleteAccount(selected)
+      const result = await workbookApi.deleteAccount(selected)
       accounts.setData(result.accounts)
       selectTitle('')
       setDeleteTitleOpen(false)

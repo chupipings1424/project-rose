@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Modal } from '../../../components/Modal'
-import { trackerApi } from '../api/client'
+import { workbookApi } from '../api/client'
 import type { ImportKind, ImportMode, ImportPlan } from '../api/types'
 
 const KINDS: Record<ImportKind, { title: string; hint: string; columns: string; showYear: boolean }> = {
@@ -61,7 +61,7 @@ function ImportForm({ kind, onClose, onImported }: Omit<Props, 'open'>) {
     setBusy(dryRun ? 'preview' : 'import')
     setError(null)
     try {
-      const result = await trackerApi.importFile(kind, {
+      const result = await workbookApi.importFile(kind, {
         file,
         mode,
         dryRun,
@@ -194,7 +194,7 @@ function ImportForm({ kind, onClose, onImported }: Omit<Props, 'open'>) {
         <button
           type="button"
           className="btn link"
-          onClick={() => void trackerApi.downloadSample(kind).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))}
+          onClick={() => void workbookApi.downloadSample(kind).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))}
         >
           Download example file
         </button>
