@@ -1,9 +1,11 @@
 // Every sound here is synthesised with the Web Audio API: no audio files, no copyright,
 // and it is a good way to learn how audio graphs work (source -> filter -> gain -> speakers).
 //
-// Every gate skin has a sound profile: the same building blocks (rumble, grind,
-// impact, whoosh) tuned differently, plus a signature "accent" - a synth
-// arpeggio for neon, an airlock hiss for space, a church bell for Death Note...
+// Every theme's entrance has a sound profile: the same building blocks (rumble,
+// grind, impact, whoosh) tuned differently, plus a signature "accent" timed to
+// its scene - a synth arpeggio for neon, a pen scratching for Death Note, a
+// Kamehameha blast for Dragon Ball... Accent times are seconds after the scene
+// starts playing out (the end of the arrival).
 import type { SoundProfileId } from './gateSkins'
 
 export interface GateSound {
@@ -141,8 +143,12 @@ export const SOUND_PROFILES: Readonly<Record<SoundProfileId, SoundProfile>> = {
   crystal: {
     rumbleHz: 100, subHz: 52, grindHz: 2400, grindQ: 10, chopHz: 20, chopWave: 'sine', impactPitch: 80, crunchHz: 180, weight: 0.25, sweep: [600, 8000],
     arrive: (kit) => kit.tone(1568, { length: 0.6, peak: 0.07, detune: 6 }),
-    open: (kit) => notes(kit, [1046.5, 1318.5, 1568, 2093, 2637, 3136], 0.11, { length: 1.4, peak: 0.07, detune: 7 }),
-  },
+    open: (kit) => {
+      notes(kit, [1046.5, 1318.5, 1568, 2093], 0.11, { length: 1.4, peak: 0.07, detune: 7 })
+      // The glass shatters.
+      kit.noise({ at: 0.55, length: 0.6, peak: 0.35, filter: 'highpass', from: 3500, to: 9000 })
+      notes(kit, [3520, 4186, 2960, 3729], 0.05, { at: 0.58, length: 0.3, peak: 0.05 })
+    },  },
   truth: {
     rumbleHz: 60, subHz: 28, grindHz: 300, grindQ: 1.4, chopHz: 5, chopWave: 'sine', impactPitch: 38, crunchHz: 360, weight: 0.9, sweep: [90, 1600],
     // Two heartbeats as the gate lands...
@@ -155,10 +161,78 @@ export const SOUND_PROFILES: Readonly<Record<SoundProfileId, SoundProfile>> = {
   },
   gothic: {
     rumbleHz: 70, subHz: 31, grindHz: 1100, grindQ: 4, chopHz: 9, chopWave: 'sawtooth', impactPitch: 52, crunchHz: 600, weight: 0.75, sweep: [150, 2600],
-    arrive: (kit) => kit.noise({ length: 0.25, peak: 0.3, filter: 'bandpass', from: 2400, q: 8 }),
+    // A page turning as the notebook opens...
+    arrive: (kit) => kit.noise({ length: 0.3, peak: 0.25, filter: 'bandpass', from: 1500, to: 4000, q: 0.8 }),
     open: (kit) => {
-      bell(kit, 98, 0, 0.3)
-      bell(kit, 98, 1.1, 0.2)
+      // ...the pen scratching out the name, then a bell when it is written.
+      ;[0.36, 0.46, 0.55, 0.66, 0.74, 0.84, 0.93].forEach((at) =>
+        kit.noise({ at, length: 0.07, peak: 0.18, filter: 'bandpass', from: 3000, to: 2200, q: 3 }),
+      )
+      bell(kit, 98, 1.02, 0.3)
+    },
+  },
+  ki: {
+    rumbleHz: 90, subHz: 36, grindHz: 700, grindQ: 1.2, chopHz: 18, chopWave: 'sawtooth', impactPitch: 48, crunchHz: 500, weight: 0.8, sweep: [200, 4000],
+    // The aura flares up, crackling...
+    arrive: (kit) => {
+      kit.tone(80, { type: 'sawtooth', attack: 0.3, length: 0.5, peak: 0.1, glideTo: 220, lowpass: 900 })
+      ;[0.05, 0.18, 0.3, 0.41].forEach((at) => kit.noise({ at, length: 0.06, peak: 0.12, filter: 'highpass', from: 5000 }))
+    },
+    // ...ki charges into a rising whine ("Ka... me... ha... me...") and the beam fires: "HA!"
+    open: (kit) => {
+      kit.tone(220, { type: 'sawtooth', attack: 0.5, length: 0.2, peak: 0.08, detune: 14, glideTo: 880, lowpass: 2600 })
+      kit.tone(440, { type: 'sine', attack: 0.5, length: 0.2, peak: 0.06, glideTo: 1760 })
+      kit.noise({ at: 0.66, length: 1.6, peak: 0.5, filter: 'lowpass', from: 4000, to: 500 })
+      kit.tone(130, { type: 'sawtooth', at: 0.66, attack: 0.01, length: 1.4, peak: 0.25, glideTo: 40, lowpass: 700 })
+    },
+  },
+  sharingan: {
+    rumbleHz: 70, subHz: 33, grindHz: 1800, grindQ: 6, chopHz: 9, chopWave: 'triangle', impactPitch: 44, crunchHz: 300, weight: 0.45, sweep: [300, 3600],
+    // The eye opens with a sharp "shing".
+    arrive: (kit) => {
+      kit.tone(2400, { type: 'triangle', at: 0.15, length: 0.5, peak: 0.06, detune: 8 })
+      kit.noise({ at: 0.15, length: 0.25, peak: 0.15, filter: 'highpass', from: 6000 })
+    },
+    // The tomoe spin faster and faster (swishes closer together), then a taiko
+    // drum and a dissonant drone as the Mangekyō's genjutsu lands.
+    open: (kit) => {
+      ;[0, 0.24, 0.42, 0.54, 0.63, 0.7, 0.75].forEach((at, i) =>
+        kit.noise({ at, length: 0.16, peak: 0.08 + i * 0.02, filter: 'bandpass', from: 600, to: 2400, q: 2 }),
+      )
+      kit.tone(70, { at: 0.8, attack: 0.005, length: 0.7, peak: 0.6, glideTo: 42 })
+      kit.noise({ at: 0.8, length: 0.2, peak: 0.25, filter: 'lowpass', from: 500 })
+      ;[110, 116.5, 164.8].forEach((f) => kit.tone(f, { type: 'sawtooth', at: 0.78, attack: 0.3, length: 1.6, peak: 0.05, lowpass: 700 }))
+    },
+  },
+  getsuga: {
+    rumbleHz: 75, subHz: 34, grindHz: 900, grindQ: 1.5, chopHz: 12, chopWave: 'square', impactPitch: 46, crunchHz: 450, weight: 0.6, sweep: [250, 5000],
+    // Chains rattle...
+    arrive: (kit) =>
+      [0, 0.08, 0.17, 0.27, 0.34].forEach((at, i) => {
+        kit.noise({ at, length: 0.05, peak: 0.12, filter: 'bandpass', from: 3600, q: 6 })
+        kit.tone(i % 2 ? 2900 : 3400, { type: 'triangle', at, length: 0.12, peak: 0.03 })
+      }),
+    // ...the shoji doors slide, then the slash: "Getsuga Tenshō!" and a boom.
+    open: (kit) => {
+      kit.noise({ length: 0.55, peak: 0.15, filter: 'bandpass', from: 700, to: 1200, q: 1.5 })
+      kit.noise({ at: 0.5, length: 0.35, peak: 0.45, filter: 'highpass', from: 800, to: 7000 })
+      kit.tone(62, { at: 0.56, attack: 0.005, length: 1.3, peak: 0.5, glideTo: 30 })
+      ;[73.4, 87.3, 103.8].forEach((f) => kit.tone(f, { type: 'sawtooth', at: 0.56, attack: 0.05, length: 1.6, peak: 0.05, lowpass: 600 }))
+    },
+  },
+  geass: {
+    rumbleHz: 80, subHz: 38, grindHz: 1200, grindQ: 5, chopHz: 6, chopWave: 'sine', impactPitch: 54, crunchHz: 260, weight: 0.35, sweep: [300, 4200],
+    // A low choir as the eye opens...
+    arrive: (kit) =>
+      [220, 261.6, 329.6].forEach((f) => kit.tone(f, { type: 'triangle', attack: 0.3, length: 1.6, peak: 0.06, detune: 10, lowpass: 1500 })),
+    // ...the Geass ignites (a rising tone), then a pulse for every sigil that flies out.
+    open: (kit) => {
+      kit.tone(300, { attack: 0.02, length: 0.28, peak: 0.08, glideTo: 1200 })
+      ;[0.27, 0.42, 0.57].forEach((at) => {
+        kit.tone(880, { at, attack: 0.005, length: 0.5, peak: 0.08 })
+        kit.tone(440, { at, attack: 0.005, length: 0.6, peak: 0.06, type: 'triangle' })
+        kit.tone(90, { at, attack: 0.005, length: 0.4, peak: 0.3, glideTo: 50 })
+      })
     },
   },
 }
@@ -349,7 +423,7 @@ export function createGateSound(muted: boolean, profileId: SoundProfileId = 'sto
       scrape((0.12 + door * 0.02) * profile.weight, 0.55)
     },
     doorClosed() {
-      impact(0.55 * Math.max(profile.weight, 0.5), profile.impactPitch, 0.9)
+      impact(0.55 * profile.weight, profile.impactPitch, 0.9)
       profile.arrive?.(kit)
     },
     gateOpened() {

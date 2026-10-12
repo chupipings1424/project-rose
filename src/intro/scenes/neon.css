@@ -1,0 +1,334 @@
+.gate[data-skin='neon'] {
+  --g-bg: #07021a;
+  --g-ink: #fbe9ff;
+  --g-title: #ffffff;
+  --g-title-shadow:
+    0 0 12px rgba(255, 43, 214, 0.9),
+    0 0 30px rgba(0, 240, 255, 0.5);
+  --g-flash: radial-gradient(circle at 50% 55%, #ffffff, #ffc4f4 45%, #ff2bd6);
+}
+
+.neon-world,
+.neon-sky {
+  inset: 0;
+}
+
+.neon-world {
+  animation: neon-jolt var(--scene-t) steps(1, end) both;
+}
+
+.neon-sky {
+  position: absolute;
+  background: linear-gradient(180deg, #07021a 0%, #1a0538 30%, #4a0b5e 50%, #b0158f 62%, #ff2bd6 68%);
+}
+
+/* The synthwave sun: a gradient disc with horizontal slits cut by a mask. */
+.neon-sun {
+  position: absolute;
+  left: 50%;
+  bottom: 32%;
+  width: 38vmin;
+  aspect-ratio: 1;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffe14d 0%, #ff8a3d 45%, #ff2bd6 100%);
+  /* Horizontal slits, wider towards the bottom. */
+  mask-image: linear-gradient(180deg, #000 0 52%, transparent 52% 56%, #000 56% 62%, transparent 62% 66%, #000 66% 73%, transparent 73% 77%, #000 77% 85%, transparent 85% 89%, #000 89%);
+  }
+
+.neon-city {
+  position: absolute;
+  bottom: 32%;
+}
+
+.neon-city--far {
+  fill: #3a0d5e;
+  height: 28vh;
+}
+
+.neon-city--near {
+  fill: #12052a;
+  height: 18vh;
+  filter: drop-shadow(0 -1px 0 #ff2bd6);
+}
+
+.neon-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 32%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1a0333, #07021a);
+  border-top: 2px solid #ff2bd6;
+  box-shadow: 0 -4px 30px rgba(255, 43, 214, 0.6);
+}
+
+.neon-grid {
+  position: absolute;
+  inset: 0 -60%;
+  background:
+    linear-gradient(rgba(255, 43, 214, 0.8) 2px, transparent 2px) 0 0 / 100% 36px,
+    linear-gradient(90deg, rgba(0, 240, 255, 0.7) 2px, transparent 2px) 50% 0 / 64px 100%;
+  transform: perspective(240px) rotateX(58deg);
+  transform-origin: 50% 0;
+  mask-image: linear-gradient(180deg, transparent, #000 30%);
+  animation: neon-grid-run 0.7s linear infinite;
+}
+
+@keyframes neon-grid-run {
+  to {
+    background-position:
+      0 36px,
+      50% 0;
+  }
+}
+
+.neon-sign {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  translate: -50% -50%;
+  display: grid;
+}
+
+.neon-word {
+  grid-area: 1 / 1;
+  font: 900 clamp(3rem, 15vmin, 9rem) / 1 'Orbitron', sans-serif;
+  letter-spacing: 0.12em;
+  padding-left: 0.12em;
+}
+
+/* Glass tubes: a white core with a pink glow. */
+.neon-word--main {
+  color: #fff6fe;
+  text-shadow:
+    0 0 4px #fff,
+    0 0 12px #ff2bd6,
+    0 0 28px #ff2bd6,
+    0 0 60px #b0158f;
+  animation: neon-flicker var(--scene-t) linear both;
+}
+
+.neon-word--cyan,
+.neon-word--pink {
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+.neon-word--cyan {
+  color: #00f0ff;
+  animation: neon-glitch-c var(--scene-t) steps(1, end) both;
+}
+
+.neon-word--pink {
+  color: #ff2bd6;
+  animation: neon-glitch-m var(--scene-t) steps(1, end) both;
+}
+
+@keyframes neon-flicker {
+  0%,
+  3% {
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  6% {
+    opacity: 0.15;
+  }
+  9% {
+    opacity: 1;
+  }
+  11% {
+    opacity: 0.3;
+  }
+  12%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* RGB split: the colour channels slip apart in slices while the signal fails. */
+@keyframes neon-glitch-c {
+  0%,
+  21% {
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.9;
+    translate: -10px 0;
+    clip-path: inset(10% 0 55% 0);
+  }
+  27% {
+    translate: 14px 0;
+    clip-path: inset(60% 0 8% 0);
+  }
+  32% {
+    translate: -6px 0;
+    clip-path: inset(30% 0 40% 0);
+  }
+  37% {
+    translate: -18px 0;
+    clip-path: inset(0 0 70% 0);
+  }
+  42% {
+    translate: 8px 0;
+    clip-path: inset(45% 0 20% 0);
+  }
+  47% {
+    translate: -24px 0;
+    clip-path: inset(15% 0 15% 0);
+  }
+  52%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes neon-glitch-m {
+  0%,
+  23% {
+    opacity: 0;
+  }
+  24% {
+    opacity: 0.9;
+    translate: 12px 0;
+    clip-path: inset(50% 0 20% 0);
+  }
+  29% {
+    translate: -12px 0;
+    clip-path: inset(5% 0 65% 0);
+  }
+  34% {
+    translate: 20px 0;
+    clip-path: inset(35% 0 35% 0);
+  }
+  40% {
+    translate: -8px 0;
+    clip-path: inset(70% 0 0 0);
+  }
+  45% {
+    translate: 26px 0;
+    clip-path: inset(20% 0 30% 0);
+  }
+  52%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The whole picture jumps sideways, like a bad VHS frame. */
+@keyframes neon-jolt {
+  0%,
+  25% {
+    translate: 0 0;
+  }
+  26% {
+    translate: -14px 0;
+  }
+  28% {
+    translate: 0 0;
+  }
+  35% {
+    translate: 18px 2px;
+  }
+  36% {
+    translate: 0 0;
+  }
+  43% {
+    translate: -22px -3px;
+  }
+  45% {
+    translate: 6px 0;
+  }
+  47%,
+  100% {
+    translate: 0 0;
+  }
+}
+
+.neon-bars {
+  inset: 0;
+  pointer-events: none;
+}
+
+.neon-bars i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3vh;
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.55), rgba(255, 255, 255, 0.8), rgba(255, 43, 214, 0.55));
+  opacity: 0;
+  animation: neon-bar var(--scene-t) steps(1, end) both;
+}
+
+.neon-bars i:nth-child(1) {
+  top: 18%;
+}
+.neon-bars i:nth-child(2) {
+  top: 41%;
+  height: 1.2vh;
+  animation-delay: 90ms;
+}
+.neon-bars i:nth-child(3) {
+  top: 63%;
+  height: 5vh;
+  animation-delay: 170ms;
+}
+.neon-bars i:nth-child(4) {
+  top: 82%;
+  height: 2vh;
+  animation-delay: 40ms;
+}
+
+@keyframes neon-bar {
+  0%,
+  24% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.8;
+  }
+  27% {
+    opacity: 0;
+  }
+  33% {
+    opacity: 0.6;
+  }
+  34% {
+    opacity: 0;
+  }
+  41% {
+    opacity: 0.9;
+  }
+  43%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The tear: a line splits the screen, then rips open into light. */
+.neon-tear {
+  inset: 0;
+  background: linear-gradient(180deg, #ff2bd6, #ffffff 35% 65%, #00f0ff);
+  box-shadow: 0 0 40px #ff2bd6;
+  scale: 0 0.006;
+  animation: neon-tear var(--scene-t) both;
+}
+
+@keyframes neon-tear {
+  0%,
+  44% {
+    scale: 0 0.006;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.2, 1);
+  }
+  52% {
+    scale: 1 0.006;
+    animation-timing-function: cubic-bezier(0.7, 0, 0.3, 1);
+  }
+  76%,
+  100% {
+    scale: 1 1;
+  }
+}

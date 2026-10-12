@@ -246,6 +246,131 @@
   color-scheme: dark;
 }
 
+[data-theme='dragonball'] {
+  --art-dragonball: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E %3Cdefs%3E%3CradialGradient id='b' cx='.38' cy='.34' r='.78'%3E%3Cstop offset='0' stop-color='%23ffeeb0'/%3E%3Cstop offset='.3' stop-color='%23ffb12e'/%3E%3Cstop offset='.78' stop-color='%23ff7a00'/%3E%3Cstop offset='1' stop-color='%23a84200'/%3E%3C/radialGradient%3E%3C/defs%3E %3Ccircle cx='100' cy='100' r='94' fill='url(%23b)'/%3E %3Cg fill='%23e3261b'%3E%3Cpolygon points='82,69 85.7,78.9 96.3,79.4 88,85.9 90.8,96.1 82,90.3 73.2,96.1 76,85.9 67.7,79.4 78.3,78.9'/%3E%3Cpolygon points='120,69 123.7,78.9 134.3,79.4 126,85.9 128.8,96.1 120,90.3 111.2,96.1 114,85.9 105.7,79.4 116.3,78.9'/%3E%3Cpolygon points='82,107 85.7,116.9 96.3,117.4 88,123.9 90.8,134.1 82,128.3 73.2,134.1 76,123.9 67.7,117.4 78.3,116.9'/%3E%3Cpolygon points='120,107 123.7,116.9 134.3,117.4 126,123.9 128.8,134.1 120,128.3 111.2,134.1 114,123.9 105.7,117.4 116.3,116.9'/%3E%3C/g%3E %3Cellipse cx='68' cy='56' rx='30' ry='15' fill='%23fff' opacity='.6' transform='rotate(-32 68 56)'/%3E %3Cellipse cx='140' cy='150' rx='34' ry='12' fill='%23ffd36b' opacity='.25' transform='rotate(-32 140 150)'/%3E %3C/svg%3E");
+  --bg: #06071a;
+  --bg-2: #2a1a4a;
+  --surface: rgba(22, 18, 52, 0.55);
+  --surface-strong: rgba(12, 12, 34, 0.95);
+  --surface-hover: rgba(44, 34, 92, 0.55);
+  --border: rgba(255, 138, 28, 0.22);
+  --border-strong: rgba(74, 168, 255, 0.6);
+  --text: #fff4e8;
+  --muted: #b6a8c8;
+  --accent: #ff8a1c;
+  --accent-2: #4aa8ff;
+  --on-accent: #1a0800;
+  --ok: #5ef0a0;
+  --warn: #ffd23f;
+  --danger: #ff4d5e;
+  --glow: 0 0 28px rgba(255, 138, 28, 0.38);
+  --glow-2: 0 0 24px rgba(74, 168, 255, 0.4);
+  --grid: rgba(255, 210, 63, 0.1);
+  --orb-1: rgba(255, 138, 28, 0.34);
+  --orb-2: rgba(74, 168, 255, 0.3);
+  --c1: #ff8a1c;
+  --c2: #4aa8ff;
+  --c3: #ffd23f;
+  --c4: #5ef0a0;
+  --c5: #c58bff;
+  --c6: #ff4d5e;
+  color-scheme: dark;
+}
+
+[data-theme='naruto'] {
+  --art-seal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-100 -100 200 200'%3E %3Cg fill='none' stroke='%23ffffff' stroke-linecap='round'%3E %3Cpath d='M3 0L3.2 0.5L3.4 1L3.4 1.6L3.3 2.3L3.1 2.9L2.8 3.5L2.4 4.2L1.8 4.7L1.2 5.2L0.4 5.5L-0.5 5.8L-1.4 5.9L-2.3 5.9L-3.3 5.7L-4.3 5.3L-5.2 4.8L-6.1 4.1L-6.9 3.2L-7.5 2.3L-8 1.1L-8.4 -0.1L-8.5 -1.4L-8.4 -2.7L-8.2 -4L-7.7 -5.4L-7 -6.6L-6.1 -7.8L-5 -8.8L-3.7 -9.7L-2.2 -10.4L-0.7 -10.9L1 -11.1L2.7 -11.1L4.4 -10.8L6.1 -10.2L7.7 -9.4L9.2 -8.3L10.6 -7L11.7 -5.4L12.7 -3.7L13.3 -1.8L13.7 0.2L13.8 2.3L13.5 4.4L12.9 6.5L12 8.5L10.8 10.4L9.3 12.1L7.5 13.6L5.5 14.8L3.2 15.7L0.9 16.2L-1.6 16.4L-4.1 16.3L-6.6 15.7L-9 14.8L-11.2 13.5L-13.3 11.8L-15.1 9.8L-16.7 7.5L-17.9 5L-18.7 2.3L-19.1 -0.5L-19 -3.4L-18.5 -6.3L-17.6 -9.1L-16.3 -11.8L-14.5 -14.2L-12.4 -16.5L-9.9 -18.3L-7.1 -19.9L-4.2 -21L-1 -21.6L2.3 -21.8L5.6 -21.4L8.8 -20.6L11.9 -19.2L14.8 -17.4L17.5 -15.2L19.7 -12.6L21.6 -9.6L23.1 -6.3L24 -2.8L24.4 0.8L24.3 4.5L23.6 8.2L22.3 11.7L20.5 15.1L18.2 18.1L15.4 20.9L12.3 23.2L8.8 25L5 26.2L1 27L-3.1 27.1L-7.1 26.5L-11.1 25.4L-14.9 23.7L-18.5 21.4L-21.7 18.5L-24.4 15.2L-26.6 11.5L-28.3 7.5L-29.3 3.2L-29.7 -1.3L-29.5 -5.7L-28.5 -10.2L-26.9 -14.4L-24.7 -18.4L-21.8 -22.1L-18.4 -25.3L-14.5 -28L-10.3 -30.1L-5.7 -31.6L-0.9 -32.3L3.9 -32.3L8.8 -31.6L13.5 -30.2L18 -28.1L22.2 -25.2L25.9 -21.8L29.1 -17.8L31.7 -13.4L33.5 -8.6L34.7 -3.5' stroke-width='3'/%3E %3Ccircle r='44' stroke-width='2'/%3E%3Ccircle r='48' stroke-width='1'/%3E %3Cg stroke-width='3.4'%3E%3Cpath d='M-12 -56H12M-12 -63H12M-12 -70H12' transform='rotate(0)'/%3E%3Cpath d='M-12 -56H12M-12 -63H12M-12 -70H-3M3 -70H12' transform='rotate(45)'/%3E%3Cpath d='M-12 -56H12M-12 -63H-3M3 -63H12M-12 -70H12' transform='rotate(90)'/%3E%3Cpath d='M-12 -56H12M-12 -63H-3M3 -63H12M-12 -70H-3M3 -70H12' transform='rotate(135)'/%3E%3Cpath d='M-12 -56H-3M3 -56H12M-12 -63H12M-12 -70H12' transform='rotate(180)'/%3E%3Cpath d='M-12 -56H-3M3 -56H12M-12 -63H12M-12 -70H-3M3 -70H12' transform='rotate(225)'/%3E%3Cpath d='M-12 -56H-3M3 -56H12M-12 -63H-3M3 -63H12M-12 -70H12' transform='rotate(270)'/%3E%3Cpath d='M-12 -56H-3M3 -56H12M-12 -63H-3M3 -63H12M-12 -70H-3M3 -70H12' transform='rotate(315)'/%3E%3C/g%3E %3Ccircle r='80' stroke-width='1.5'/%3E%3Ccircle r='94' stroke-width='2'/%3E %3Cg stroke-width='1.6'%3E%3Cpath d='M0 -84V-90' transform='rotate(5.6)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(16.85)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(28.1)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(39.35)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(50.6)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(61.85)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(73.1)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(84.35)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(95.6)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(106.85)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(118.1)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(129.35)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(140.6)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(151.85)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(163.1)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(174.35)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(185.6)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(196.85)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(208.1)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(219.35)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(230.6)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(241.85)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(253.1)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(264.35)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(275.6)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(286.85)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(298.1)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(309.35)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(320.6)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(331.85)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(343.1)'/%3E%3Cpath d='M0 -84V-90' transform='rotate(354.35)'/%3E%3C/g%3E %3C/g%3E%3C/svg%3E");
+  --bg: #0c0705;
+  --bg-2: #2e1306;
+  --surface: rgba(44, 22, 10, 0.55);
+  --surface-strong: rgba(28, 14, 6, 0.95);
+  --surface-hover: rgba(80, 38, 14, 0.55);
+  --border: rgba(255, 122, 0, 0.22);
+  --border-strong: rgba(255, 122, 0, 0.6);
+  --text: #fff1e4;
+  --muted: #c2a58e;
+  --accent: #ff7a00;
+  --accent-2: #e8262b;
+  --on-accent: #1a0a00;
+  --ok: #7ee08a;
+  --warn: #ffd166;
+  --danger: #ff4d4d;
+  --glow: 0 0 28px rgba(255, 122, 0, 0.38);
+  --glow-2: 0 0 24px rgba(232, 38, 43, 0.35);
+  --grid: rgba(255, 122, 0, 0.09);
+  --orb-1: rgba(255, 122, 0, 0.34);
+  --orb-2: rgba(232, 38, 43, 0.26);
+  --c1: #ff7a00;
+  --c2: #3d7bff;
+  --c3: #ffd166;
+  --c4: #7ee08a;
+  --c5: #e8262b;
+  --c6: #b48cff;
+  color-scheme: dark;
+}
+
+[data-theme='bleach'] {
+  --art-reiatsu: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 100' preserveAspectRatio='none'%3E %3Cpath d='M0 100V70Q6 56 10 38Q16 60 18 68Q24 80 28 62Q34 84 34 68Q38 40 42 22Q48 44 50 68Q54 72 58 54Q64 76 66 68Q70 48 74 30Q80 52 84 68Q88 78 92 60Q98 82 100 68Q104 36 108 18Q114 40 118 68Q122 66 126 48Q132 70 136 68Q138 46 142 28Q148 50 152 68Q156 76 160 58Q166 80 170 68Q172 42 176 24Q182 46 188 68Q192 70 196 52Q202 74 206 68Q210 52 214 34Q220 56 224 68Q228 80 232 62Q238 84 242 68Q244 38 248 20Q254 42 260 68Q264 68 268 50Q274 72 278 68Q282 54 286 36Q292 58 300 68V100Z' fill='%23020103' stroke='%23d8102e' stroke-width='1.4' stroke-opacity='.85'/%3E%3C/svg%3E");
+  --art-chain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 80'%3E %3Cellipse cx='20' cy='20' rx='11' ry='18' fill='none' stroke='%235a0010' stroke-width='8'/%3E %3Cellipse cx='20' cy='20' rx='11' ry='18' fill='none' stroke='%23d8102e' stroke-width='4.5'/%3E %3Cellipse cx='18' cy='16' rx='8' ry='13' fill='none' stroke='%23ff8a96' stroke-width='1' opacity='.7'/%3E %3Crect x='15.5' y='34' width='9' height='32' rx='4.5' fill='%237a0016'/%3E %3Crect x='17.5' y='36' width='3' height='28' rx='1.5' fill='%23ff6b7a' opacity='.65'/%3E %3C/svg%3E");
+  --bg: #040405;
+  --bg-2: #1a0408;
+  --surface: rgba(20, 14, 18, 0.62);
+  --surface-strong: rgba(10, 8, 10, 0.96);
+  --surface-hover: rgba(52, 12, 20, 0.55);
+  --border: rgba(159, 180, 209, 0.16);
+  --border-strong: rgba(216, 16, 46, 0.65);
+  --text: #eef1f6;
+  --muted: #9a9fab;
+  --accent: #d8102e;
+  --accent-2: #9fb4d1;
+  --on-accent: #fff4f5;
+  --ok: #7fd8a6;
+  --warn: #ffb347;
+  --danger: #ff3b55;
+  --glow: 0 0 28px rgba(216, 16, 46, 0.38);
+  --glow-2: 0 0 24px rgba(159, 180, 209, 0.25);
+  --grid: rgba(159, 180, 209, 0.06);
+  --orb-1: rgba(150, 0, 20, 0.42);
+  --orb-2: rgba(90, 0, 14, 0.35);
+  --c1: #d8102e;
+  --c2: #9fb4d1;
+  --c3: #ffb347;
+  --c4: #7fd8a6;
+  --c5: #8c7cff;
+  --c6: #ff6b6b;
+  color-scheme: dark;
+}
+
+[data-theme='geass'] {
+  --art-geass-eye: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 120'%3E %3Cdefs%3E%3CradialGradient id='i' cx='.5' cy='.5' r='.5'%3E%3Cstop offset='0' stop-color='%23ff5a72'/%3E%3Cstop offset='.7' stop-color='%23e8173a'/%3E%3Cstop offset='1' stop-color='%235a0014'/%3E%3C/radialGradient%3E %3CclipPath id='c'%3E%3Cpath d='M8 60Q100 -12 192 60Q100 132 8 60Z'/%3E%3C/clipPath%3E%3C/defs%3E %3Cpath d='M8 60Q100 -12 192 60Q100 132 8 60Z' fill='%23140a20' stroke='%23e8173a' stroke-width='2'/%3E %3Cg clip-path='url(%23c)'%3E%3Ccircle cx='100' cy='60' r='34' fill='url(%23i)'/%3E %3Cpath d='M50 30C44 38 30 36 12 26C24 40 36 46 44 50L50 74L56 50C64 46 76 40 88 26C70 36 56 38 50 30Z' transform='translate(70 30) scale(.6)' fill='%23ffe3e8'/%3E %3Ccircle cx='100' cy='60' r='34' fill='none' stroke='%232a0008' stroke-width='3'/%3E%3C/g%3E %3Cpath d='M2 60Q100 -24 198 60' fill='none' stroke='%23e8173a' stroke-width='1' opacity='.6'/%3E %3C/svg%3E");
+  --bg: #07040e;
+  --bg-2: #241040;
+  --surface: rgba(30, 16, 52, 0.55);
+  --surface-strong: rgba(18, 10, 32, 0.95);
+  --surface-hover: rgba(56, 28, 92, 0.55);
+  --border: rgba(212, 175, 55, 0.2);
+  --border-strong: rgba(232, 23, 58, 0.6);
+  --text: #f4eefc;
+  --muted: #ab9fc4;
+  --accent: #e8173a;
+  --accent-2: #d4af37;
+  --on-accent: #fff3f5;
+  --ok: #6fe3b0;
+  --warn: #f2c14e;
+  --danger: #ff4d6a;
+  --glow: 0 0 28px rgba(232, 23, 58, 0.38);
+  --glow-2: 0 0 24px rgba(212, 175, 55, 0.32);
+  --grid: rgba(212, 175, 55, 0.08);
+  --orb-1: rgba(232, 23, 58, 0.3);
+  --orb-2: rgba(120, 60, 220, 0.32);
+  --c1: #e8173a;
+  --c2: #d4af37;
+  --c3: #9b6bff;
+  --c4: #6fe3b0;
+  --c5: #f4eefc;
+  --c6: #ff8a5c;
+  color-scheme: dark;
+}
+
 /* ---------- base ---------- */
 :root {
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -418,7 +543,8 @@ h3 {
 }
 
 /* ---------- per-theme background motifs (original artwork, inline SVG) ---------- */
-.bg-motif {
+.bg-motif,
+.bg-floor {
   position: absolute;
   inset: 0;
   display: none;
@@ -538,6 +664,157 @@ h3 {
   }
   to {
     scale: 1 1.12;
+  }
+}
+
+/* Dragon Ball Super: the four-star Dragon Ball, with ki sparks rising around it. */
+[data-theme='dragonball'] .bg-motif {
+  display: block;
+  inset: auto;
+  right: 6vw;
+  bottom: 9vh;
+  width: min(26vmin, 260px);
+  aspect-ratio: 1;
+  background: var(--art-dragonball) center / contain no-repeat;
+  filter: drop-shadow(0 0 18px rgba(255, 160, 40, 0.75)) drop-shadow(0 0 60px rgba(255, 120, 0, 0.35));
+  opacity: 0.8;
+  animation: ball-float 7s ease-in-out infinite alternate;
+}
+[data-theme='dragonball'] .bg-motif::after {
+  content: '';
+  position: absolute;
+  inset: -60% -45% -10%;
+  background:
+    radial-gradient(circle at 20px 30px, #ffe27a 1.6px, transparent 2.4px) 0 0 / 90px 110px,
+    radial-gradient(circle at 60px 80px, #8fd0ff 1.3px, transparent 2px) 0 0 / 130px 150px,
+    radial-gradient(circle at 40px 10px, #fff3c0 1px, transparent 1.8px) 0 0 / 70px 95px;
+  mask-image: radial-gradient(ellipse 50% 60% at 50% 60%, #000 30%, transparent 75%);
+  animation: ki-rise 3.2s linear infinite;
+}
+@keyframes ball-float {
+  to {
+    translate: 0 -2.4vh;
+    rotate: 8deg;
+  }
+}
+@keyframes ki-rise {
+  to {
+    background-position:
+      0 -110px,
+      0 -150px,
+      0 -95px;
+  }
+}
+
+/* Naruto: the Eight Trigrams seal (spiral, trigrams, rings). A white mask, coloured by CSS. */
+[data-theme='naruto'] .bg-motif {
+  display: block;
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: min(100vmin, 1000px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  filter: drop-shadow(0 0 6px rgba(255, 122, 0, 0.8)) drop-shadow(0 0 22px rgba(255, 80, 0, 0.4));
+  opacity: 0.17;
+  will-change: rotate, opacity;
+  animation:
+    circle-turn 200s linear infinite reverse,
+    seal-pulse 6s ease-in-out infinite;
+}
+[data-theme='naruto'] .bg-motif::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 0deg, #ff7a00, #ffb347 25%, #ff7a00 50%, #e8262b 75%, #ff7a00);
+  mask: var(--art-seal) center / contain no-repeat;
+}
+@keyframes seal-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Bleach: Ichigo's final form - blood-red chains and black reiatsu burning along the floor. */
+[data-theme='bleach'] .bg-grid {
+  display: none;
+}
+[data-theme='bleach'] .bg-floor {
+  display: block;
+  background: var(--art-reiatsu) 0 100% / 640px 24vh repeat-x;
+  filter: drop-shadow(0 -6px 18px rgba(216, 16, 46, 0.45));
+  transform-origin: bottom;
+  animation: reiatsu-burn 2.4s ease-in-out infinite alternate;
+}
+[data-theme='bleach'] .bg-motif {
+  display: block;
+}
+[data-theme='bleach'] .bg-motif::before,
+[data-theme='bleach'] .bg-motif::after {
+  content: '';
+  position: absolute;
+  top: -10vh;
+  width: max(26px, 3.2vmin);
+  height: 130vh;
+  background: var(--art-chain) 0 0 / 100% auto repeat-y;
+  filter: drop-shadow(0 0 8px rgba(216, 16, 46, 0.7));
+  opacity: 0.55;
+  transform-origin: top;
+  animation: chain-sway 9s ease-in-out infinite alternate;
+}
+[data-theme='bleach'] .bg-motif::before {
+  left: 7vw;
+  rotate: 14deg;
+}
+[data-theme='bleach'] .bg-motif::after {
+  right: 9vw;
+  rotate: -18deg;
+  animation-duration: 11s;
+  animation-direction: alternate-reverse;
+}
+@keyframes reiatsu-burn {
+  from {
+    scale: 1 0.88;
+  }
+  to {
+    scale: 1 1.1;
+  }
+}
+@keyframes chain-sway {
+  to {
+    translate: 1.5vw 0;
+  }
+}
+
+/* Code Geass: a watching eye with the red sigil of Geass in its iris. */
+[data-theme='geass'] .bg-motif {
+  display: block;
+  inset: auto;
+  top: 9vh;
+  left: 50%;
+  width: min(64vmin, 640px);
+  aspect-ratio: 200 / 120;
+  translate: -50% 0;
+  background: var(--art-geass-eye) center / contain no-repeat;
+  filter: drop-shadow(0 0 14px rgba(232, 23, 58, 0.6)) drop-shadow(0 0 50px rgba(232, 23, 58, 0.3));
+  opacity: 0.2;
+  animation:
+    geass-glow 5s ease-in-out infinite,
+    geass-blink 13s linear infinite;
+}
+@keyframes geass-glow {
+  50% {
+    opacity: 0.34;
+  }
+}
+@keyframes geass-blink {
+  0%,
+  95%,
+  100% {
+    scale: 1 1;
+  }
+  97% {
+    scale: 1 0.06;
   }
 }
 
@@ -1144,6 +1421,18 @@ tfoot td {
 }
 
 /* ---------- theme picker ---------- */
+.theme-groups {
+  display: grid;
+  gap: 1.1rem;
+}
+.theme-group-label {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

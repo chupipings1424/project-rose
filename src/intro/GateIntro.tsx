@@ -1,42 +1,30 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { SoundIcon } from '../components/icons'
-import { GateDoor } from './GateDoor'
-import { ARRIVE_MS, DOOR_COUNT, GATE_MUTE_KEY, OPEN_MS, SKIP_MS, readGateMuted } from './gateConfig'
-import { CITY_FAR, CITY_NEAR, DUNES_FAR, DUNES_NEAR, DUST, FOREST_FAR, FOREST_NEAR, RAIN } from './gateScenery'
-import { GATE_SKINS, currentGateSkin, type Horizon } from './gateSkins'
+import { ARRIVE_MS, GATE_MUTE_KEY, OPEN_MS, SKIP_MS, readGateMuted } from './gateConfig'
+import { GATE_SKINS, currentGateSkin } from './gateSkins'
 import { createGateSound, type GateSound } from './gateSound'
+import { SCENES } from './scenes'
 import './gate.css'
 
 type Phase = 'arrive' | 'opening' | 'leaving'
 
-const HORIZONS: Record<Exclude<Horizon, 'none'>, readonly [string, string]> = {
-  forest: [FOREST_FAR, FOREST_NEAR],
-  city: [CITY_FAR, CITY_NEAR],
-  dunes: [DUNES_FAR, DUNES_NEAR],
-}
-
 /**
- * The entrance after a successful login: a giant gate with seven nested doors
- * lands over the login page, its numbers light up, and it swings open while the
- * camera flies through into the app.
+ * The entrance after a successful login. Every theme plays its own scene:
+ * the Zoldyck gate swings open, a Sharingan spins, a Kamehameha fires...
  *
- * The gate wears the current theme: a stone gate in a forest for Hunter, a
- * neon city gate, a space-station blast door, the Gate of Truth... The
- * structure is the same; gateSkins.ts picks the scenery and sound, and
- * gate.css paints each skin with CSS custom properties.
- *
- * It is a small state machine driven by timers: arrive -> opening -> done
- * (or -> leaving -> done when skipped). All the motion itself is CSS; React
- * only flips `data-phase` and CSS animations/transitions react to it.
- */
-export function GateIntro({ onDone }: { onDone: () => void }) {
+ * This component is the shell they share: a small state machine driven by
+ * timers (arrive -> opening -> done, or -> leaving -> done when skipped), the
+ * title, the Skip and sound buttons, the closing flash and the sound. The
+ * picture itself comes from scenes/index.ts, and all the motion is CSS:
+ * React only flips `data-phase`, and `--scene-t` tells the scenes how long
+ * the whole entrance lasts so they can run one timeline from start to end.
+ */export function GateIntro({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<Phase>('arrive')
   const [muted, setMuted] = useState(readGateMuted)
   // Read once: the theme can't change while the gate is up.
   const [skin] = useState(currentGateSkin)
   const look = GATE_SKINS[skin]
-  const horizon = look.horizon === 'none' ? null : HORIZONS[look.horizon]
   const soundRef = useRef<GateSound | null>(null)
   const skipRef = useRef<HTMLButtonElement>(null)
   const onDoneRef = useRef(onDone)
@@ -101,94 +89,19 @@ export function GateIntro({ onDone }: { onDone: () => void }) {
     setPhase('leaving')
   }
 
-  const wideOpen = phase === 'opening'
+  const Scene = SCENES[skin]
 
   return createPortal(
     <div
       className="gate"
       data-phase={phase}
       data-skin={skin}
-      style={{ '--door': wideOpen ? DOOR_COUNT : 0 } as CSSProperties}
+      style={{ '--scene-t': `${ARRIVE_MS + OPEN_MS}ms` } as CSSProperties}
       role="dialog"
       aria-modal="true"
       aria-labelledby="gate-title"
     >
-      <div className="gate-world">
-        <div className="gate-sky" />
-        {look.stars && <div className="gate-stars" />}
-        <div className="gate-moon" />
-        {look.rain && (
-          <div className="gate-rain" aria-hidden="true">
-            {RAIN.map((column, i) => (
-              <span
-                key={i}
-                style={{ left: `${column.left}%`, animationDelay: `${column.delay}s`, animationDuration: `${column.duration}s` }}
-              >
-                {column.text}
-              </span>
-            ))}
-          </div>
-        )}
-        {horizon && (
-          <>
-            <svg className="gate-forest gate-forest--far" viewBox="0 0 1600 300" preserveAspectRatio="none" aria-hidden="true">
-              <path d={horizon[0]} />
-            </svg>
-            <svg className="gate-forest gate-forest--near" viewBox="0 0 1600 300" preserveAspectRatio="none" aria-hidden="true">
-              <path d={horizon[1]} />
-            </svg>
-          </>
-        )}
-        <div className="gate-fog gate-fog--back" />
-
-        <div className="gate-wall">
-          <div className="gate-wall__cap" />
-          <div className="gate-portal">
-            <div className="gate-beyond">{look.eye && <div className="gate-eye" />}</div>
-            <div className="gate-doors">
-              <div className="gate-leaf" data-side="left">
-                <GateDoor door={DOOR_COUNT} side="left" lit={wideOpen} wideOpen={wideOpen} />
-              </div>
-              <div className="gate-leaf" data-side="right">
-                <GateDoor door={DOOR_COUNT} side="right" lit={wideOpen} wideOpen={wideOpen} />
-              </div>
-            </div>
-            <div className="gate-pillar gate-pillar--left" />
-            <div className="gate-pillar gate-pillar--right" />
-            <div className="gate-lintel">
-              <span>ROSE</span>
-            </div>
-            {/* Changing `key` remounts the element, which restarts its CSS animation. */}
-            <div className="gate-dust" key={`dust-${wideOpen}`} aria-hidden="true">
-              {DUST.map((grain, i) => (
-                <i
-                  key={i}
-                  style={
-                    {
-                      left: `${grain.left}%`,
-                      width: grain.size,
-                      height: grain.size,
-                      animationDelay: `${grain.delay}s`,
-                      animationDuration: `${grain.duration}s`,
-                      '--drift': `${grain.drift}px`,
-                    } as CSSProperties
-                  }
-                />
-              ))}
-            </div>
-            <div className="gate-puff" key={`puff-${wideOpen}`} aria-hidden="true" />
-            <div className="gate-glow" />
-          </div>
-        </div>
-
-        <div className="gate-ground">
-          {look.grid && <div className="gate-floor-grid" />}
-          {look.circle && <div className="gate-circle" />}
-        </div>
-        <div className="gate-fog gate-fog--front" />
-        <div className="gate-rays" />
-      </div>
-
+      <Scene opening={phase === 'opening'} />
       <div className="gate-vignette" />
       <div className="gate-flash" />
 

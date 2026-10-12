@@ -1,36 +1,41 @@
-// One gate, eight skins: each ROSE theme dresses the entrance differently.
-// Colours and materials live in gate.css under .gate[data-skin='...'];
-// this file only says which scenery pieces and which sound each skin uses.
+// Every ROSE theme has its own entrance. scenes/index.ts picks the scene
+// (the picture and its animation); this file picks the sound and the words.
 import { isThemeId, type ThemeId } from '../theme/themes'
 
 export type GateSkin = ThemeId
-export type Horizon = 'forest' | 'city' | 'dunes' | 'none'
-export type SoundProfileId = 'stone' | 'synth' | 'airlock' | 'digital' | 'desert' | 'crystal' | 'truth' | 'gothic'
+export type SoundProfileId =
+  | 'stone'
+  | 'synth'
+  | 'airlock'
+  | 'digital'
+  | 'desert'
+  | 'crystal'
+  | 'truth'
+  | 'gothic'
+  | 'ki'
+  | 'sharingan'
+  | 'getsuga'
+  | 'geass'
 
 export interface GateSkinConfig {
-  /** Silhouettes behind the wall. */
-  horizon: Horizon
-  /** Extra layers: stars, falling code, a floor grid, the transmutation circle. */
-  stars?: boolean
-  rain?: boolean
-  grid?: boolean
-  circle?: boolean
-  /** The Gate of Truth has an eye in the dark behind its doors. */
-  eye?: boolean
   sound: SoundProfileId
-  /** Status line while the gate lands, then while it opens. */
+  /** Status line while the scene arrives, then while it plays out. */
   lines: readonly [string, string]
 }
 
 export const GATE_SKINS: Readonly<Record<GateSkin, GateSkinConfig>> = {
-  neon: { horizon: 'city', grid: true, sound: 'synth', lines: ['Identity verified\u2026', 'Unlocking the grid'] },
-  space: { horizon: 'none', stars: true, sound: 'airlock', lines: ['Docking clearance granted\u2026', 'Opening the blast doors'] },
-  matrix: { horizon: 'none', rain: true, grid: true, sound: 'digital', lines: ['Decrypting your key\u2026', 'Entering the system'] },
-  solar: { horizon: 'dunes', sound: 'desert', lines: ['The sun gate awakens\u2026', 'Opening to the light'] },
-  hologram: { horizon: 'city', grid: true, sound: 'crystal', lines: ['Projecting the gateway\u2026', 'Phasing through'] },
-  hunter: { horizon: 'forest', sound: 'stone', lines: ['The gate recognises you\u2026', 'Opening the gate'] },
-  alchemist: { horizon: 'none', circle: true, eye: true, sound: 'truth', lines: ['Equivalent exchange accepted\u2026', 'The Gate of Truth opens'] },
-  deathnote: { horizon: 'forest', sound: 'gothic', lines: ['Your name is not in the notebook\u2026', 'The iron gate opens'] },
+  neon: { sound: 'synth', lines: ['Booting the neon grid\u2026', 'Glitching through'] },
+  space: { sound: 'airlock', lines: ['Coordinates locked\u2026', 'Jumping to hyperspace'] },
+  matrix: { sound: 'digital', lines: ['Decrypting your key\u2026', 'Entering the system'] },
+  solar: { sound: 'desert', lines: ['The sun is rising\u2026', 'Solar flare!'] },
+  hologram: { sound: 'crystal', lines: ['Projecting the gateway\u2026', 'Breaking through the glass'] },
+  hunter: { sound: 'stone', lines: ['The gate recognises you\u2026', 'Opening the gate'] },
+  alchemist: { sound: 'truth', lines: ['Equivalent exchange accepted\u2026', 'The Gate of Truth opens'] },
+  deathnote: { sound: 'gothic', lines: ['The notebook opens\u2026', 'A name is written'] },
+  dragonball: { sound: 'ki', lines: ['Power level rising\u2026', 'Ka\u2026me\u2026ha\u2026me\u2026HA!'] },
+  naruto: { sound: 'sharingan', lines: ['Sharingan awakened\u2026', 'Mangeky\u014d: genjutsu cast'] },
+  bleach: { sound: 'getsuga', lines: ['The Senkaimon opens\u2026', 'Getsuga Tensh\u014d!'] },
+  geass: { sound: 'geass', lines: ['A contract is sealed\u2026', 'By the power of Geass: enter'] },
 }
 
 /** The skin follows the current theme (set on <html data-theme> by ThemeProvider). */

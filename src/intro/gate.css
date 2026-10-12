@@ -26,7 +26,6 @@
     0 2px 0 rgba(0, 0, 0, 0.6),
     0 0 30px rgba(0, 0, 0, 0.8);
   --g-sub-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
-  --g-grid: rgba(255, 255, 255, 0.3);
   --g-sky:
     radial-gradient(ellipse 70% 45% at 50% 78%, rgba(150, 160, 170, 0.28), transparent 70%),
     linear-gradient(180deg, #06090f 0%, #0d141e 35%, #1c2530 62%, #333c46 80%, #262c33 100%);
@@ -807,78 +806,12 @@ body:has(> .gate[data-phase='opening']) > #root {
 }
 
 /* ==========================================================================
-   Skins. One per theme; each only repaints the --g-* variables above, plus a
-   few skin-only touches. Extra scenery (stars, code rain, floor grid, the
-   transmutation circle, the eye) is rendered by GateIntro when gateSkins.ts
-   asks for it.
-   ========================================================================== */
+   Door skins. Hunter (the defaults above) and the alchemist share the door
+   scene (scenes/DoorScene.tsx); every other theme has its own scene with its
+   own stylesheet in scenes/.
+   ==========================================================================
 
-/* ---------- shared extras ------------------------------------------------- */
-
-.gate-stars {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 20px 30px, #fff 1px, transparent 1.6px) 0 0 / 170px 130px,
-    radial-gradient(circle at 90px 80px, #cfe0ff 0.8px, transparent 1.4px) 0 0 / 230px 190px,
-    radial-gradient(circle at 140px 20px, #fff 0.8px, transparent 1.4px) 0 0 / 310px 260px,
-    radial-gradient(circle at 60px 150px, #e6d8ff 1.4px, transparent 2px) 0 0 / 410px 330px;
-  animation: gate-twinkle 3.4s ease-in-out infinite alternate;
-}
-
-@keyframes gate-twinkle {
-  to {
-    opacity: 0.55;
-  }
-}
-
-.gate-rain {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.gate-rain span {
-  position: absolute;
-  top: 0;
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  font: 600 clamp(12px, 1.6vmin, 18px) / 1.05 Consolas, 'Courier New', monospace;
-  color: #00ff6a;
-  text-shadow: 0 0 6px rgba(0, 255, 106, 0.8);
-  /* The head of each column is bright, the tail fades out. */
-  mask-image: linear-gradient(180deg, transparent, #000 85%);
-  translate: 0 -100%;
-  animation: gate-rain linear infinite;
-  will-change: translate;
-}
-
-@keyframes gate-rain {
-  to {
-    translate: 0 110vh;
-  }
-}
-
-.gate-floor-grid {
-  position: absolute;
-  inset: 0 -60%;
-  background:
-    linear-gradient(var(--g-grid) 2px, transparent 2px) 0 0 / 100% 36px,
-    linear-gradient(90deg, var(--g-grid) 2px, transparent 2px) 50% 0 / 64px 100%;
-  transform: perspective(240px) rotateX(58deg);
-  transform-origin: 50% 0;
-  mask-image: linear-gradient(180deg, transparent, #000 35%);
-  animation: gate-grid-run 1.4s linear infinite;
-}
-
-@keyframes gate-grid-run {
-  to {
-    background-position:
-      0 36px,
-      50% 0;
-  }
-}
+/* ---------- Gate of Truth extras ------------------------------------------ */
 
 /* The transmutation circle drawn on the floor in front of the Gate of Truth.
    The artwork is a mask (same file as the alchemist background); the red and
@@ -900,8 +833,31 @@ body:has(> .gate[data-phase='opening']) > #root {
   position: absolute;
   inset: 0;
   background: conic-gradient(from 20deg, #ff3b44, #3ea6ff 25%, #ff3b44 50%, #3ea6ff 75%, #ff3b44);
-  mask: url('../assets/transmutation-circle.webp') center / contain no-repeat;
-  animation: gate-circle-turn 30s linear infinite;
+  /* Two masks intersected: the circle artwork, and a pie slice that grows to
+     a full turn, so the circle looks like it is being drawn by hand. */
+  mask:
+    conic-gradient(#000 var(--sweep), transparent 0),
+    url('../assets/transmutation-circle.webp') center / contain no-repeat;
+  mask-composite: intersect;
+  animation:
+    gate-circle-draw 0.6s ease-out both,
+    gate-circle-turn 30s linear infinite;
+}
+
+/* A registered property can be animated (an unregistered one would jump). */
+@property --sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 360deg;
+}
+
+@keyframes gate-circle-draw {
+  from {
+    --sweep: 0deg;
+  }
+  to {
+    --sweep: 360deg;
+  }
 }
 
 .gate[data-phase='opening'] .gate-circle {
@@ -945,290 +901,6 @@ body:has(> .gate[data-phase='opening']) > #root {
   to {
     scale: 1 1;
   }
-}
-
-/* ---------- neon: a synthwave city gate ----------------------------------- */
-
-.gate[data-skin='neon'] {
-  --g-bg: #07021a;
-  --g-ink: #fbe9ff;
-  --g-title: #ffffff;
-  --g-title-shadow:
-    0 0 12px rgba(255, 43, 214, 0.9),
-    0 0 30px rgba(0, 240, 255, 0.5);
-  --g-sky: linear-gradient(180deg, #07021a 0%, #1a0538 38%, #4a0b5e 62%, #b0158f 80%, #ff2bd6 100%);
-  --g-moon: linear-gradient(180deg, #ffe14d 0%, #ff8a3d 45%, #ff2bd6 100%);
-  --g-moon-glow: 0 0 70px 14px rgba(255, 43, 214, 0.4);
-  --g-moon-size: 30vmin;
-  --g-moon-top: 14%;
-  --g-moon-right: calc(50% - 15vmin);
-  --g-far: #2a0a4a;
-  --g-near: #12052a;
-  --g-fog: 255 43 214;
-  --g-fog-2: 0 240 255;
-  --g-tex:
-    repeating-linear-gradient(90deg, rgba(0, 240, 255, 0.07) 0 1px, transparent 1px 44px),
-    repeating-linear-gradient(0deg, rgba(255, 43, 214, 0.07) 0 1px, transparent 1px 44px);
-  --g-blend: normal;
-  --g-wall: #140728;
-  --g-wall-fade: rgba(7, 2, 26, 0.92);
-  --g-cap: #2a0d4d;
-  --g-pillar: #1d0a3a;
-  --g-lintel: #24104a;
-  --g-door: #1a0b35;
-  --g-door-7: #1f0d40;
-  --g-edge: #0d0520;
-  --g-font: 'Orbitron', sans-serif;
-  --g-carve: rgba(0, 240, 255, 0.6);
-  --g-carve-light: rgba(255, 43, 214, 0.45);
-  --g-beyond: radial-gradient(ellipse 60% 55% at 50% 80%, #ffffff 0%, #ffd1f7 22%, #ff2bd6 52%, #2a0040 100%);
-  --g-dust: rgba(0, 240, 255, 0.85);
-  --g-puff: rgba(255, 43, 214, 0.45);
-  --g-ray: rgba(255, 120, 240, 0.18);
-  --g-ground: linear-gradient(180deg, #1a0333 0%, #07021a 100%);
-  --g-path: none;
-  --g-grid: rgba(255, 43, 214, 0.75);
-  --g-flash: radial-gradient(circle at 50% 60%, #ffffff, #ffc4f4 45%, #ff2bd6);
-}
-
-/* The striped synthwave sun. */
-.gate[data-skin='neon'] .gate-moon {
-  border-radius: 50%;
-  mask-image: linear-gradient(
-    180deg,
-    #000 52%,
-    transparent 52% 56%,
-    #000 56% 64%,
-    transparent 64% 69%,
-    #000 69% 76%,
-    transparent 76% 82%,
-    #000 82% 88%,
-    transparent 88% 95%,
-    #000 95%
-  );
-}
-
-.gate[data-skin='neon'] .gate-lintel,
-.gate[data-skin='neon'] .gate-pillar {
-  box-shadow:
-    inset 0 0 0 2px rgba(255, 43, 214, 0.85),
-    0 0 18px rgba(255, 43, 214, 0.55);
-}
-
-.gate[data-skin='neon'] .gate-door__face {
-  box-shadow:
-    inset 0 0 0 1.5px rgba(0, 240, 255, 0.75),
-    inset 0 0 22px rgba(0, 240, 255, 0.18);
-}
-
-/* ---------- space: a station blast door under the stars ------------------- */
-
-.gate[data-skin='space'] {
-  --g-bg: #02030a;
-  --g-ink: #e6ecff;
-  --g-title: #f2f5ff;
-  --g-sky:
-    radial-gradient(ellipse 55% 38% at 28% 30%, rgba(108, 140, 255, 0.24), transparent 70%),
-    radial-gradient(ellipse 45% 32% at 76% 22%, rgba(195, 139, 255, 0.2), transparent 70%),
-    linear-gradient(180deg, #02030a 0%, #060a1c 60%, #0c1230 100%);
-  --g-moon: radial-gradient(circle at 34% 32%, #dfe7ff, #8aa2ff 35%, #3a4aa8 62%, #10163a 85%);
-  --g-moon-glow:
-    0 0 50px 6px rgba(108, 140, 255, 0.35),
-    inset -18px -12px 30px rgba(0, 0, 0, 0.55);
-  --g-moon-size: 17vmin;
-  --g-moon-top: 7%;
-  --g-moon-right: 9%;
-  --g-fog: 108 140 255;
-  --g-fog-2: 195 139 255;
-  --g-tex: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 7px);
-  --g-blend: normal;
-  --g-wall: #2e3442;
-  --g-wall-fade: rgba(2, 3, 10, 0.92);
-  --g-cap: #3c4354;
-  --g-pillar: #4a5263;
-  --g-lintel: #14161c;
-  --g-door: #464e5f;
-  --g-door-7: #4d5568;
-  --g-edge: #262b36;
-  --g-font: 'Orbitron', sans-serif;
-  --g-carve: rgba(12, 14, 22, 0.85);
-  --g-carve-light: rgba(170, 195, 255, 0.28);
-  --g-beyond: radial-gradient(ellipse 60% 55% at 50% 80%, #ffffff 0%, #d6e2ff 25%, #6c8cff 55%, #0a0f2a 100%);
-  --g-dust: rgba(200, 220, 255, 0.85);
-  --g-puff: rgba(210, 220, 245, 0.55);
-  --g-ray: rgba(170, 190, 255, 0.15);
-  --g-ground:
-    repeating-linear-gradient(90deg, transparent 0 calc(12.5% - 1px), rgba(0, 0, 0, 0.45) calc(12.5% - 1px) 12.5%),
-    linear-gradient(180deg, #2a2f3a 0%, #151922 55%, #090b10 100%);
-  --g-path: linear-gradient(180deg, rgba(108, 140, 255, 0.4), rgba(108, 140, 255, 0.05));
-  --g-flash: radial-gradient(circle at 50% 60%, #ffffff, #dfe8ff 45%, #6c8cff);
-}
-
-/* A ring around the planet. */
-.gate[data-skin='space'] .gate-moon::after {
-  content: '';
-  position: absolute;
-  inset: 38% -42%;
-  border-radius: 50%;
-  border: 2px solid rgba(195, 139, 255, 0.55);
-  box-shadow: 0 0 12px rgba(195, 139, 255, 0.35);
-  rotate: -16deg;
-}
-
-/* Hazard stripes on the lintel, with the name on a dark plate. */
-.gate[data-skin='space'] .gate-lintel {
-  background: repeating-linear-gradient(-45deg, #f5c518 0 18px, #14161c 18px 36px);
-}
-
-.gate[data-skin='space'] .gate-lintel span {
-  padding: 0.15em 0.4em 0.15em 0.9em;
-  background: #14161c;
-  color: #f5c518;
-  text-shadow: none;
-}
-
-.gate[data-skin='space'] .gate-door__number.is-lit {
-  color: #fff;
-}
-
-/* ---------- matrix: a door made of green code ------------------------------ */
-
-.gate[data-skin='matrix'] {
-  --g-bg: #000000;
-  --g-ink: #c8ffd8;
-  --g-title: #d6ffe0;
-  --g-title-shadow: 0 0 14px rgba(0, 255, 106, 0.8);
-  --g-sky: linear-gradient(180deg, #000000 0%, #00140a 70%, #002610 100%);
-  --g-fog: 0 255 106;
-  --g-fog-2: 0 170 80;
-  --g-tex: repeating-linear-gradient(0deg, rgba(0, 255, 106, 0.07) 0 1px, transparent 1px 4px);
-  --g-blend: normal;
-  --g-wall: #031a0a;
-  --g-wall-fade: rgba(0, 0, 0, 0.9);
-  --g-cap: #04260f;
-  --g-pillar: #052b12;
-  --g-lintel: #06331a;
-  --g-door: #031f0c;
-  --g-door-7: #042510;
-  --g-edge: #010d05;
-  --g-font: Consolas, 'Courier New', monospace;
-  --g-carve: rgba(0, 255, 106, 0.5);
-  --g-carve-light: rgba(0, 255, 106, 0.15);
-  --g-beyond: radial-gradient(ellipse 60% 55% at 50% 80%, #eafff0 0%, #7dffb0 25%, #00ff6a 55%, #001a08 100%);
-  --g-dust: rgba(0, 255, 106, 0.9);
-  --g-puff: rgba(0, 255, 106, 0.3);
-  --g-ray: rgba(0, 255, 106, 0.14);
-  --g-ground: linear-gradient(180deg, #001a08 0%, #000000 100%);
-  --g-path: none;
-  --g-grid: rgba(0, 255, 106, 0.55);
-  --g-flash: radial-gradient(circle at 50% 60%, #f0fff4, #9dffc2 45%, #00ff6a);
-}
-
-.gate[data-skin='matrix'] .gate-moon {
-  display: none;
-}
-
-.gate[data-skin='matrix'] .gate-door__face,
-.gate[data-skin='matrix'] .gate-pillar,
-.gate[data-skin='matrix'] .gate-lintel {
-  box-shadow: inset 0 0 0 1px rgba(0, 255, 106, 0.55);
-}
-
-/* ---------- solar: a sandstone sun gate in the desert ---------------------- */
-
-.gate[data-skin='solar'] {
-  --g-bg: #1a0a02;
-  --g-ink: #fff3e0;
-  --g-title: #fff6e8;
-  --g-sky:
-    radial-gradient(ellipse 80% 50% at 50% 85%, rgba(255, 214, 120, 0.55), transparent 70%),
-    linear-gradient(180deg, #2a0b1c 0%, #7a2420 30%, #e0581a 60%, #ffa040 82%, #ffcf7a 100%);
-  --g-moon: radial-gradient(circle, #fffbe8 0%, #ffe08a 40%, #ff9a1a 72%);
-  --g-moon-glow:
-    0 0 80px 30px rgba(255, 170, 60, 0.55),
-    0 0 240px 120px rgba(255, 120, 30, 0.3);
-  --g-moon-size: 20vmin;
-  --g-moon-top: 20%;
-  --g-moon-right: calc(50% - 10vmin);
-  --g-far: #b0582a;
-  --g-near: #7a3418;
-  --g-fog: 255 200 140;
-  --g-fog-2: 255 170 110;
-  --g-wall: #c08a52;
-  --g-wall-fade: rgba(26, 10, 2, 0.75);
-  --g-cap: #a8743f;
-  --g-pillar: #c99560;
-  --g-lintel: #cf9c66;
-  --g-door: #b07c48;
-  --g-door-7: #ba8550;
-  --g-edge: #8a5c30;
-  --g-carve: rgba(60, 30, 10, 0.75);
-  --g-carve-light: rgba(255, 240, 210, 0.25);
-  --g-beyond: radial-gradient(ellipse 60% 55% at 50% 80%, #fffdf0 0%, #fff0b0 25%, #ffb347 55%, #5a2a0a 100%);
-  --g-dust: rgba(230, 190, 130, 0.85);
-  --g-puff: rgba(220, 180, 120, 0.6);
-  --g-ray: rgba(255, 220, 150, 0.2);
-  --g-ground: linear-gradient(180deg, #d9a066 0%, #a8703c 50%, #6a4020 100%);
-  --g-path: linear-gradient(180deg, rgba(255, 230, 180, 0.35), rgba(255, 230, 180, 0.05));
-  --g-flash: radial-gradient(circle at 50% 60%, #fffef5, #fff0c0 45%, #ffb347);
-}
-
-/* ---------- hologram: an iridescent, see-through gate ---------------------- */
-
-.gate[data-skin='hologram'] {
-  --g-bg: #eef1ff;
-  --g-ink: #1b1640;
-  --g-title: #1b1640;
-  --g-title-shadow: 0 0 22px rgba(255, 255, 255, 0.95);
-  --g-sub-shadow: 0 0 10px rgba(255, 255, 255, 0.95);
-  --g-sky:
-    radial-gradient(ellipse 50% 40% at 20% 25%, rgba(255, 157, 245, 0.35), transparent 70%),
-    radial-gradient(ellipse 50% 40% at 80% 30%, rgba(157, 216, 255, 0.4), transparent 70%),
-    linear-gradient(180deg, #dfe7ff 0%, #eef1ff 50%, #f7e8ff 100%);
-  --g-moon: conic-gradient(from 30deg, #ff9df5, #9dd8ff, #b6ffde, #fff59d, #ff9df5);
-  --g-moon-glow: 0 0 40px 8px rgba(157, 216, 255, 0.6);
-  --g-moon-size: 10vmin;
-  --g-far: rgba(124, 58, 237, 0.14);
-  --g-near: rgba(8, 145, 178, 0.18);
-  --g-fog: 124 58 237;
-  --g-fog-2: 8 145 178;
-  --g-tex: linear-gradient(115deg, rgba(255, 157, 245, 0.4), rgba(157, 216, 255, 0.4) 35%, rgba(182, 255, 222, 0.4) 65%, rgba(255, 245, 157, 0.4));
-  --g-blend: normal;
-  --g-wall: #dcd6f7;
-  --g-wall-fade: rgba(238, 241, 255, 0.85);
-  --g-cap: #cfc8f2;
-  --g-pillar: #e6e1fb;
-  --g-lintel: #ece8fd;
-  --g-door: #d8d2f5;
-  --g-door-7: #ddd8f8;
-  --g-edge: #b9b0e6;
-  --g-font: 'Orbitron', sans-serif;
-  --g-carve: rgba(124, 58, 237, 0.65);
-  --g-carve-light: rgba(255, 255, 255, 0.8);
-  --g-beyond: radial-gradient(ellipse 60% 55% at 50% 80%, #ffffff 0%, #e0f7ff 30%, #a5e9ff 55%, #7c3aed 100%);
-  --g-dust: rgba(124, 58, 237, 0.6);
-  --g-puff: rgba(8, 145, 178, 0.3);
-  --g-ray: rgba(124, 58, 237, 0.12);
-  --g-ground: linear-gradient(180deg, #e4e0fb 0%, #cfc8f2 100%);
-  --g-path: none;
-  --g-grid: rgba(124, 58, 237, 0.45);
-  --g-flash: radial-gradient(circle at 50% 60%, #ffffff, #f3eaff 45%, #c4b5fd);
-}
-
-.gate[data-skin='hologram'] .gate-forest {
-  stroke: rgba(124, 58, 237, 0.55);
-  stroke-width: 1.5px;
-  vector-effect: non-scaling-stroke;
-}
-
-.gate[data-skin='hologram'] .gate-door__face {
-  box-shadow:
-    inset 0 0 0 1px rgba(124, 58, 237, 0.5),
-    inset 0 0 18px rgba(8, 145, 178, 0.25);
-}
-
-.gate[data-skin='hologram'] .gate-vignette {
-  opacity: 0.25;
 }
 
 /* ---------- alchemist: the Gate of Truth in the white void ---------------- */
@@ -1280,53 +952,85 @@ body:has(> .gate[data-phase='opening']) > #root {
   opacity: 0.35;
 }
 
-/* ---------- deathnote: a gothic iron gate under a blood moon -------------- */
-
-.gate[data-skin='deathnote'] {
-  --g-bg: #050002;
-  --g-ink: #ece4d8;
-  --g-title: #ece4d8;
-  --g-sky:
-    radial-gradient(ellipse 70% 45% at 50% 78%, rgba(200, 16, 46, 0.35), transparent 70%),
-    linear-gradient(180deg, #000000 0%, #12000a 35%, #3a0410 65%, #5a0a16 82%, #2a0208 100%);
-  --g-moon: radial-gradient(circle at 40% 40%, #ff8a80, #c8102e 55%, #5a0010);
-  --g-moon-glow:
-    0 0 60px 16px rgba(200, 16, 46, 0.45),
-    0 0 200px 80px rgba(200, 16, 46, 0.2);
-  --g-moon-size: 14vmin;
-  --g-moon-top: 7%;
-  --g-moon-right: 14%;
-  --g-far: #1a0306;
-  --g-near: #080102;
-  --g-fog: 120 20 30;
-  --g-fog-2: 80 10 20;
-  --g-wall: #2a2224;
-  --g-wall-fade: rgba(5, 0, 2, 0.92);
-  --g-cap: #1f191a;
-  --g-pillar: #2e2628;
-  --g-lintel: #251e20;
-  --g-door: #151012;
-  --g-door-7: #1a1416;
-  --g-edge: #0a0708;
-  --g-font: 'Old English Text MT', 'UnifrakturMaguntia', 'Times New Roman', serif;
-  --g-carve: rgba(200, 16, 46, 0.9);
-  --g-carve-light: rgba(0, 0, 0, 0.6);
-  --g-beyond: radial-gradient(ellipse 60% 55% at 50% 80%, #ffe9e0 0%, #ff9a8a 25%, #c8102e 55%, #1a0004 100%);
-  --g-dust: rgba(160, 150, 150, 0.6);
-  --g-puff: rgba(90, 10, 20, 0.5);
-  --g-ray: rgba(255, 80, 90, 0.12);
-  --g-ground: linear-gradient(180deg, #1a0a0c 0%, #050002 100%);
-  --g-path: linear-gradient(180deg, rgba(80, 10, 20, 0.45), rgba(80, 10, 20, 0.05));
-  --g-flash: radial-gradient(circle at 50% 60%, #fff1ee, #ffb3a8 45%, #c8102e);
+/* Alchemy reaction: red and blue lightning crackling around the circle. */
+.truth-sparks {
+  position: absolute;
+  top: 2%;
+  left: 50%;
+  width: min(120vw, 150vh);
+  aspect-ratio: 1;
+  translate: -50% -42%;
+  scale: 1 0.26;
+  overflow: visible;
+  fill: none;
+  stroke-width: 0.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-/* Wrought-iron bars on the doors instead of solid stone. */
-.gate[data-skin='deathnote'] .gate-door__face {
-  background:
-    repeating-linear-gradient(90deg, #0b0809 0 9%, #2a2124 9% 11%, #0b0809 11% 12%),
-    linear-gradient(180deg, #1a1416, #0b0809);
+.truth-sparks path {
+  stroke: #7cc4ff;
+  filter: drop-shadow(0 0 1px #3ea6ff);
+  opacity: 0;
+  animation: truth-spark 0.42s steps(1, end) infinite;
 }
 
-.gate[data-skin='deathnote'] .gate-door__number.is-lit {
-  color: #ff3b55;
+.truth-sparks path.is-red {
+  stroke: #ff6a70;
+  filter: drop-shadow(0 0 1px #ff3b44);
+}
+
+@keyframes truth-spark {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* The black hands of Truth reach out of the darkness as the gate opens. */
+.truth-hands {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  fill: #000;
+  scale: 0;
+  overflow: visible;
+}
+
+.gate[data-phase='opening'] .truth-hands {
+  animation: truth-hands 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.truth-hands g {
+  animation: truth-writhe 0.9s ease-in-out infinite alternate;
+}
+
+.truth-hands g:nth-child(even) {
+  animation-delay: -0.45s;
+}
+
+@keyframes truth-hands {
+  0%,
+  12% {
+    scale: 0;
+  }
+  60% {
+    scale: 1.15;
+  }
+  100% {
+    scale: 1.4;
+  }
+}
+
+@keyframes truth-writhe {
+  to {
+    translate: 0 4px;
+  }
 }

@@ -1,0 +1,28 @@
+/* Shared by every entrance scene. Each scene runs ONE timeline from the
+   moment it mounts: `animation: name var(--scene-t) ... both`, with keyframe
+   percentages of the whole entrance (arrive = 0-20%, the shell's flash
+   starts around 52% and covers everything by 84%). Keying animations on
+   data-phase instead would restart them, and the element would snap back to
+   its base style for a frame when the phase changes. */
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  contain: strict;
+}
+
+.scene > * {
+  position: absolute;
+}
+
+.scene svg {
+  display: block;
+  overflow: visible;
+}
+
+/* A horizon silhouette stretched along the bottom of the screen. */
+.scene-horizon {
+  left: 0;
+  width: 100%;
+  height: 34vh;
+}

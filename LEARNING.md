@@ -239,7 +239,7 @@ loads, which avoids a flash of the wrong theme.
 `[data-theme='yourid']` block in `global.css`. TypeScript will tell you if you
 missed a field.
 
-The three anime themes (`hunter`, `alchemist`, `deathnote`) show a few more tricks:
+The anime themes (`hunter`, `alchemist`, `deathnote`, `dragonball`, `naruto`, `bleach`, `geass`) show a few more tricks:
 
 - **Background art in CSS.** `.bg-motif` in `Background.tsx` is an
   empty `div`. Each theme gives it a different `background-image`: SVG drawn
@@ -307,12 +307,21 @@ Ideas worth learning:
    gate opens straight after the login click, so the `AudioContext` it creates is allowed.
 8. **Testing time.** `vi.useFakeTimers()` lets `GateIntro.test.tsx`
    fast-forward the whole animation in milliseconds.
-9. **One component, many skins.** Every theme gets its own gate, but there is still only
-   one `GateIntro`. `gateSkins.ts` maps each theme to a small config (scenery, extras like
-   stars or code rain, a sound profile, two status lines). `gate.css` reads every colour and
-   material from `--g-*` CSS variables, and each `.gate[data-skin='matrix']` block only
-   overrides those variables. Adding a skin is data, not new code: the *Open/Closed
-   principle* again. `gateSkins.test.ts` checks that every theme has a skin and a sound.
+9. **A registry of scenes.** Every theme has its own entrance, but there is still only
+   one `GateIntro`: the *shell* (timers, sound, HUD, Skip). It looks up
+   `SCENES[theme]` in `scenes/index.ts`, typed as `Record<ThemeId, ComponentType<SceneProps>>`,
+   so TypeScript fails the build if a new theme has no scene. Adding a scene means adding
+   one component and one registry line, without touching the shell: the
+   *Open/Closed principle*. `gateSkins.ts` holds the sound profile and the status lines.
+10. **One timeline per scene.** Each scene runs all its keyframes with the same duration,
+   `var(--scene-t)` (set by the shell), and places every event with percentages. So all
+   the parts stay in sync, and changing the length is one number. Big effects (the ink
+   flood, the shockwave, the Geass sigils) are drawn at full size and scaled *up to*
+   1, so the browser never has to rasterize a huge element.
+11. **Animating a custom property.** `@property --sweep { syntax: '<angle>' }` tells the
+   browser `--sweep` is an angle, so it can animate it. The transmutation circle uses it
+   in a `conic-gradient` mask to *draw itself*. SVG strokes use the classic trick
+   `pathLength="1"` plus animating `stroke-dashoffset` from 1 to 0 (the solar flares).
 
 ## 11. Testing
 
@@ -439,7 +448,7 @@ That is an `async` loop stopped by an `AbortSignal`, the standard way to cancel 
 
 1. Change the hub greeting text in `ProjectsHubPage.tsx`.
 2. Add a "Show token" eye toggle to the login field (`useState<boolean>`).
-3. Add a 6th theme (see section 10).
+3. Add another theme with its own entrance scene (see section 10).
 4. Write a test for `formatCompactMoney` edge cases (negative numbers, zero).
 5. Add a search box to `PaymentsTable` using `useDebouncedValue`.
 6. Build a tiny "Notes" project that stores notes in `localStorage` and plug it

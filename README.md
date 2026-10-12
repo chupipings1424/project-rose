@@ -127,33 +127,42 @@ flies through and you arrive at your projects.
 - It is skipped automatically if your OS asks for *reduced motion*. While
   developing, add `?nogate` to the URL to skip it.
 
-**Every theme has its own gate.** The doors, the scenery, the light beyond and the sound
-change with the theme:
+**Every theme has its own entrance scene** (about 2.75 s) and its own synthesized sound:
 
-| Theme | Gate | Sound |
+| Theme | Entrance | Sound |
 | --- | --- | --- |
+| Neon Cyberpunk | a flickering neon "ROSE" sign over a synthwave city glitches and tears open | synth bass and zaps |
+| Deep Space | a ringed planet zips past and you jump to warp speed | hydraulic hiss and hum |
+| Matrix | code rain; you dive in while "ROSE" decrypts letter by letter | digital bleeps |
+| Solar Flare | the sun rises over the dunes, flares erupt, a shockwave hits | deep gong |
+| Hologram | a projector prints "ROSE" in light, then the glass shatters | crystal chimes and a shatter |
 | Hunter x Hunter | the original stone Testing Gate in a forest | stone thud and rumble |
-| Neon Cyberpunk | neon blast doors in a night city with a perspective grid floor | synth bass and zaps |
-| Deep Space | airlock under the stars | hydraulic hiss and hum |
-| Matrix | green code rain over a data vault | digital bleeps |
-| Solar Flare | sun temple in the dunes | deep gong |
-| Hologram | glass light doors | crystal chimes |
-| Fullmetal Alchemist | the **Gate of Truth**: the eye opens over a glowing transmutation circle | heartbeat and choir |
-| Death Note | gothic black doors, blood-red light | church bells |
+| Fullmetal Alchemist | the **Gate of Truth**: the circle draws itself, the eye opens, the black hands reach out | heartbeat and choir |
+| Death Note | the notebook opens, the pen writes "ROSE" and ink floods the screen | page flip, pen scratches, bell |
+| Dragon Ball Super | the 4-star ball charges, the aura flares, Kamehameha! | rising ki charge and blast |
+| Naruto | the Sharingan opens, spins into the Mangeky? and casts a genjutsu | spinning whoosh and pulse |
+| Bleach | the Senkaimon opens, hell butterflies, blood chains, Getsuga Tensh? | dark slash |
+| Code Geass | the eye activates and the Geass sigil flies at you over a chessboard | choir and command |
 
-All skins share one gate component. Each skin only sets CSS variables (`--g-*`) and turns on
-a few extras. See `src/intro/gateSkins.ts`.
+`GateIntro.tsx` is only the shell (timers, sound, HUD, Skip). It looks up the scene for the
+theme in `src/intro/scenes/index.ts`. The sound and status lines are in `src/intro/gateSkins.ts`.
 
 ## Themes
 
 Pick a theme on the login page or from the top bar. It is saved in your browser.
 
-| Theme | Look |
-| --- | --- |
-| Neon Cyberpunk, Deep Space, Matrix, Solar Flare, Hologram | the original futuristic themes |
-| **Hunter x Hunter** | Killua: blue-white lightning bolts that flicker in the background |
-| **Fullmetal Alchemist** | crimson and steel blue with a slowly turning, glowing red/blue transmutation circle |
-| **Death Note** | blood red on black, notebook lines, ink drips and a gothic serif font |
+The picker is split into two groups: **Futuristic** and **Anime**.
+
+| Group | Theme | Look |
+| --- | --- | --- |
+| Futuristic | Neon Cyberpunk, Deep Space, Matrix, Solar Flare, Hologram | the original futuristic themes |
+| Anime | **Hunter x Hunter** | Killua: blue-white lightning bolts that flicker in the background |
+| Anime | **Fullmetal Alchemist** | crimson and steel blue with a slowly turning, glowing red/blue transmutation circle |
+| Anime | **Death Note** | blood red on black, notebook lines, ink drips and a gothic serif font |
+| Anime | **Dragon Ball Super** | orange and blue with a glowing 4-star Dragon Ball |
+| Anime | **Naruto** | orange and black with the Eight Trigrams seal |
+| Anime | **Bleach** | black and red: Ichigo's final form, blood chains and black reiatsu |
+| Anime | **Code Geass** | violet and gold with the glowing Geass eye |
 
 ## Currency
 
@@ -216,8 +225,8 @@ src/
   App.tsx               routes (login, protected shell, lazy projects)
   api/http.ts           apiFetch: adds the session token, friendly errors, 401 = log out
   auth/                 login against the API, sessionStorage session, AuthProvider, ProtectedRoute
-  theme/                8 themes (5 futuristic + 3 anime), ThemeProvider, ThemePicker
-  intro/                the login gate (GateIntro, gateSkins per theme, gate.css, Web Audio sounds)
+  theme/                12 themes (5 futuristic + 7 anime), ThemeProvider, ThemePicker
+  intro/                the login entrance (GateIntro shell, scenes/ per theme, gateSkins, Web Audio sounds)
   lifetime/             PowerControl: presence connection, power button, auto-close
   currency/             display currency (₱ PHP default, $ USD, A$ AUD, € EUR)
   components/           shared UI: AppShell, Modal, toasts, stat tiles, states

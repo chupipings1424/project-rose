@@ -1,7 +1,7 @@
 // Scenery data generated once from a seeded random generator, so it looks
 // organic but is identical on every load (and pure during render).
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   let a = seed
   return () => {
     a = (a + 0x6d2b79f5) | 0
@@ -71,7 +71,7 @@ export interface RainColumn {
 }
 
 /** Falling code for the Matrix skin: half-width katakana and digits. */
-const GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789'
+export const GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789'
 const rainRand = mulberry32(99)
 export const RAIN: readonly RainColumn[] = Array.from({ length: 34 }, (_, i) => ({
   left: (i / 34) * 100 + rainRand() * 2,

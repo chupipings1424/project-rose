@@ -34,6 +34,7 @@ describe('GateIntro', () => {
     expect(document.querySelector('.gate-circle')).not.toBeNull()
     expect(document.querySelector('.gate-eye')).not.toBeNull()
     expect(document.querySelector('.gate-forest')).toBeNull()
+    expect(document.querySelector('.truth-hands')).not.toBeNull()
 
     act(() => vi.advanceTimersByTime(ARRIVE_MS))
     expect(screen.getByText('The Gate of Truth opens')).toBeInTheDocument()
@@ -43,7 +44,32 @@ describe('GateIntro', () => {
     document.documentElement.dataset.theme = 'matrix'
     render(<GateIntro onDone={() => {}} />)
     expect(gate()).toHaveAttribute('data-skin', 'matrix')
-    expect(document.querySelectorAll('.gate-rain span').length).toBeGreaterThan(20)
+    expect(document.querySelectorAll('.matrix-rain span').length).toBeGreaterThan(20)
+    expect(document.querySelectorAll('.matrix-reel')).toHaveLength(4)
+  })
+
+  it.each([
+    ['neon', '.neon-tear'],
+    ['space', '.space-warp i'],
+    ['solar', '.solar-flares path'],
+    ['hologram', '.holo-glass i'],
+    ['deathnote', '.note-cover'],
+    ['dragonball', '.kame-beam'],
+    ['naruto', '.sharingan-mangekyo'],
+    ['bleach', '.senkai-getsuga'],
+    ['geass', '.geass-burst svg'],
+  ])('plays its own scene for the %s theme', (theme, marker) => {
+    document.documentElement.dataset.theme = theme
+    render(<GateIntro onDone={() => {}} />)
+    expect(gate()).toHaveAttribute('data-skin', theme)
+    expect(document.querySelector(marker)).not.toBeNull()
+    // Only the door scenes have doors.
+    expect(document.querySelector('.gate-door')).toBeNull()
+  })
+
+  it('sets the scene clock to the full length of the entrance', () => {
+    render(<GateIntro onDone={() => {}} />)
+    expect((gate() as HTMLElement).style.getPropertyValue('--scene-t')).toBe(`${ARRIVE_MS + OPEN_MS}ms`)
   })
 
   it('makes the app behind it inert until the gate is gone', () => {

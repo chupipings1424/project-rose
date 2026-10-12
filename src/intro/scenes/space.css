@@ -1,0 +1,211 @@
+.gate[data-skin='space'] {
+  --g-bg: #02040d;
+  --g-ink: #e6ecff;
+  --g-title: #ffffff;
+  --g-title-shadow:
+    0 0 14px rgba(110, 160, 255, 0.8),
+    0 0 40px rgba(124, 92, 255, 0.4);
+  --g-flash: radial-gradient(circle at 50% 52%, #ffffff, #d6e4ff 40%, #7c9cff);
+}
+
+.space-nebula,
+.space-dust,
+.space-warp,
+.space-tunnel {
+  inset: 0;
+}
+
+.space-nebula {
+  background:
+    radial-gradient(ellipse 45% 35% at 28% 30%, rgba(124, 92, 255, 0.35), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 75% 70%, rgba(0, 170, 255, 0.25), transparent 70%),
+    radial-gradient(ellipse 30% 25% at 60% 20%, rgba(255, 80, 180, 0.18), transparent 70%),
+    #02040d;
+}
+
+.space-dust {
+  background:
+    radial-gradient(circle at 20px 30px, #fff 1px, transparent 1.6px) 0 0 / 170px 130px,
+    radial-gradient(circle at 90px 80px, #cfe0ff 0.8px, transparent 1.4px) 0 0 / 230px 190px,
+    radial-gradient(circle at 60px 150px, #e6d8ff 1.4px, transparent 2px) 0 0 / 410px 330px;
+  animation: space-dust var(--scene-t) ease-in both;
+}
+
+@keyframes space-dust {
+  0%,
+  25% {
+    opacity: 1;
+  }
+  45%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* A ringed planet that the ship leaves behind. */
+.space-planet {
+  right: 12%;
+  top: 56%;
+  width: 26vmin;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #9fc2ff, #4a5bd8 45%, #1a1650 75%, #07051a);
+  box-shadow:
+    inset -2vmin -1vmin 4vmin rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(110, 160, 255, 0.35);
+  animation: space-planet var(--scene-t) both;
+}
+
+.space-ring {
+  position: absolute;
+  inset: 38% -38%;
+  border-radius: 50%;
+  border: 1.4vmin solid rgba(200, 215, 255, 0.55);
+  border-top-color: transparent;
+  rotate: -14deg;
+}
+
+@keyframes space-planet {
+  0%,
+  24% {
+    translate: 0 0;
+    scale: 1;
+    animation-timing-function: cubic-bezier(0.6, 0, 1, 1);
+  }
+  50%,
+  100% {
+    translate: 60vw 40vh;
+    scale: 2.6;
+  }
+}
+
+/* Every star sits on a ray from the centre. In hyperspace it slides out
+   along its ray and stretches (scaleX) into a streak. */
+.space-warp {
+  overflow: hidden;
+}
+
+.space-warp i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 4px #bcd2ff;
+  transform-origin: 0 50%;
+  transform: rotate(var(--a)) translateX(var(--r));
+  animation: space-warp var(--scene-t) both;
+}
+
+@keyframes space-warp {
+  0%,
+  22% {
+    transform: rotate(var(--a)) translateX(var(--r)) scaleX(1);
+    opacity: 0.85;
+    animation-timing-function: cubic-bezier(0.7, 0, 0.9, 0.6);
+  }
+  34% {
+    transform: rotate(var(--a)) translateX(calc(var(--r) * 0.9)) scaleX(0.6);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.9, 0.5);
+  }
+  70%,
+  100% {
+    transform: rotate(var(--a)) translateX(calc(var(--r) * 2.6)) scaleX(90);
+    opacity: 1;
+  }
+}
+
+.space-tunnel {
+  background: radial-gradient(circle at 50% 50%, #ffffff 0, #b8ccff 8%, rgba(110, 120, 255, 0.5) 22%, transparent 55%);
+  opacity: 0;
+  scale: 0.3;
+  animation: space-tunnel var(--scene-t) ease-in both;
+}
+
+@keyframes space-tunnel {
+  0%,
+  36% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  75%,
+  100% {
+    opacity: 1;
+    scale: 1.4;
+  }
+}
+
+/* Targeting reticle: locks on during the arrival, then drops away. */
+.space-reticle {
+  left: 50%;
+  top: 50%;
+  width: 22vmin;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 2px solid rgba(140, 200, 255, 0.8);
+  box-shadow: 0 0 14px rgba(110, 160, 255, 0.6);
+  animation: space-reticle var(--scene-t) both;
+}
+
+.space-reticle::before,
+.space-reticle::after,
+.space-reticle i {
+  content: '';
+  position: absolute;
+  background: rgba(140, 200, 255, 0.85);
+}
+
+.space-reticle::before {
+  left: 50%;
+  top: -18%;
+  bottom: -18%;
+  width: 2px;
+  translate: -50% 0;
+  mask-image: linear-gradient(180deg, #000 18%, transparent 18% 82%, #000 82%);
+}
+
+.space-reticle::after {
+  top: 50%;
+  left: -18%;
+  right: -18%;
+  height: 2px;
+  translate: 0 -50%;
+  mask-image: linear-gradient(90deg, #000 18%, transparent 18% 82%, #000 82%);
+}
+
+.space-reticle i {
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  translate: -50% -50%;
+}
+
+@keyframes space-reticle {
+  0% {
+    scale: 2.2;
+    rotate: 45deg;
+    opacity: 0;
+  }
+  14% {
+    scale: 1;
+    rotate: 0deg;
+    opacity: 1;
+  }
+  17% {
+    scale: 1.08;
+  }
+  20%,
+  24% {
+    scale: 1;
+    opacity: 1;
+  }
+  32%,
+  100% {
+    scale: 0.4;
+    opacity: 0;
+  }
+}

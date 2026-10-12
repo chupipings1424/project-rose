@@ -1,0 +1,240 @@
+.gate[data-skin='hologram'] {
+  --g-bg: #eef0ff;
+  --g-ink: #2a2350;
+  --g-title: #2a1f5c;
+  --g-title-shadow: 0 0 18px rgba(255, 255, 255, 0.95);
+  --g-sub-shadow: 0 0 10px rgba(255, 255, 255, 0.95);
+  --g-flash: radial-gradient(circle at 50% 48%, #ffffff, #f1ecff 45%, #d6ccff);
+}
+
+.gate[data-skin='hologram'] .gate-vignette {
+  opacity: 0.3;
+}
+
+.holo-room,
+.holo-glass,
+.holo-glass i,
+.holo-burst,
+.holo-cracks {
+  inset: 0;
+}
+
+.holo-room {
+  background:
+    linear-gradient(180deg, transparent 62%, rgba(124, 92, 255, 0.08) 62%),
+    repeating-linear-gradient(90deg, rgba(124, 92, 255, 0.07) 0 1px, transparent 1px 60px),
+    radial-gradient(ellipse at 50% 40%, #ffffff, #e5e3fb 60%, #cfcaf2);
+}
+
+.holo-projector {
+  left: 50%;
+  bottom: 14%;
+  width: 26vmin;
+  height: 5vmin;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #ffffff, #b8a8ff 45%, #6c5ce7 80%);
+  box-shadow: 0 0 30px rgba(124, 92, 255, 0.7);
+}
+
+/* The light cone from the projector, flickering like an unstable signal. */
+.holo-beam {
+  left: 50%;
+  bottom: 16%;
+  width: 70vmin;
+  height: 56vh;
+  translate: -50% 0;
+  clip-path: polygon(40% 100%, 60% 100%, 100% 0, 0 0);
+  background: linear-gradient(0deg, rgba(160, 140, 255, 0.55), rgba(0, 220, 255, 0.12) 70%, transparent);
+  transform-origin: bottom;
+  animation:
+    holo-beam var(--scene-t) both,
+    holo-flicker 0.18s steps(2, jump-none) infinite;
+}
+
+@keyframes holo-beam {
+  0% {
+    scale: 1 0;
+  }
+  12%,
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes holo-flicker {
+  to {
+    opacity: 0.75;
+  }
+}
+
+/* Three tilted rings orbit the word in 3D. */
+.holo-rings {
+  left: 50%;
+  top: 46%;
+  width: 54vmin;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  perspective: 800px;
+  transform-style: preserve-3d;
+  animation: holo-pop var(--scene-t) both;
+}
+
+.holo-rings i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(124, 92, 255, 0.75);
+  box-shadow: 0 0 12px rgba(0, 220, 255, 0.5);
+  animation: holo-orbit 2.4s linear infinite;
+}
+
+.holo-rings i:nth-child(1) {
+  --tilt: rotateX(72deg);
+}
+.holo-rings i:nth-child(2) {
+  --tilt: rotateY(72deg) rotateX(20deg);
+  inset: 8%;
+  border-color: rgba(0, 200, 255, 0.75);
+  animation-duration: 1.9s;
+}
+.holo-rings i:nth-child(3) {
+  --tilt: rotateX(60deg) rotateY(-40deg);
+  inset: 16%;
+  border-color: rgba(255, 110, 200, 0.6);
+  animation-duration: 3.1s;
+  animation-direction: reverse;
+}
+
+@keyframes holo-orbit {
+  from {
+    transform: var(--tilt) rotateZ(0deg);
+  }
+  to {
+    transform: var(--tilt) rotateZ(360deg);
+  }
+}
+
+@keyframes holo-pop {
+  0% {
+    scale: 0.3;
+    opacity: 0;
+  }
+  14%,
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+/* The word is printed by the projector line by line, from the bottom up. */
+.holo-word {
+  left: 50%;
+  top: 46%;
+  translate: -50% -50%;
+  font: 900 clamp(3rem, 15vmin, 9rem) / 1 'Orbitron', sans-serif;
+  letter-spacing: 0.12em;
+  padding-left: 0.12em;
+  background: linear-gradient(100deg, #6c5ce7, #00c2ff 35%, #ff6ec7 65%, #6c5ce7) 0 0 / 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 10px rgba(124, 92, 255, 0.5));
+  animation: holo-print var(--scene-t) both;
+}
+
+@keyframes holo-print {
+  0%,
+  6% {
+    clip-path: inset(100% 0 0 0);
+  }
+  26%,
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Light pouring through the cracks once the glass breaks. */
+.holo-burst {
+  background: radial-gradient(circle at 50% 48%, #ffffff 0, #ffffff 30%, #efeaff 60%, #d9d0ff);
+  opacity: 0;
+  animation: holo-burst var(--scene-t) both;
+}
+
+@keyframes holo-burst {
+  0%,
+  44% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* The pane of glass: wedges around the impact point. Invisible while it is
+   whole, it frosts over as it cracks, then every shard flies outward. */
+.holo-glass i {
+  position: absolute;
+  background:
+    linear-gradient(130deg, rgba(255, 255, 255, 0.85), rgba(200, 190, 255, 0.55) 40%, rgba(160, 230, 255, 0.5) 70%, rgba(255, 190, 235, 0.55)),
+    rgba(240, 238, 255, 0.4);
+  opacity: 0;
+  animation: holo-shard var(--scene-t) both;
+}
+
+@keyframes holo-shard {
+  0%,
+  36% {
+    opacity: 0;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  42% {
+    opacity: 0.9;
+    translate: 0 0;
+    rotate: 0deg;
+    scale: 1;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  76%,
+  100% {
+    opacity: 0;
+    translate: var(--dx) var(--dy);
+    rotate: var(--rot);
+    scale: 1.15;
+  }
+}
+
+.holo-cracks {
+  width: 100%;
+  height: 100%;
+  stroke: #ffffff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 2px #6c5ce7);
+}
+
+.holo-cracks line {
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: holo-crack var(--scene-t) both;
+}
+
+@keyframes holo-crack {
+  0%,
+  38% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  43% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  47%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
