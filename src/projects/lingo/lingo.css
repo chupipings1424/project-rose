@@ -1,0 +1,288 @@
+/* ROSE Lingo (Project 04). Reuses the global card / form / button / badge styles. */
+.lingo,
+.lingo-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.lingo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+.lingo-title {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+}
+/* .subnav's container style lives in the lazily loaded workbook.css, so Lingo brings its own. */
+.lingo-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  margin-left: auto;
+}
+.lingo-language {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.lingo-language select {
+  width: auto;
+}
+
+.lingo-pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+.lingo-pair label {
+  flex: 1 1 160px;
+}
+
+.lingo-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem 2rem;
+}
+.lingo-result .span-all {
+  grid-column: 1 / -1;
+}
+.lingo-big {
+  font-size: 1.6rem;
+  margin: 0.2rem 0;
+  word-break: break-word;
+}
+.lingo-reading {
+  color: var(--accent-2);
+  font-style: italic;
+  margin: 0;
+}
+
+.lingo-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.lingo-list-head .section-title {
+  margin: 0;
+}
+.lingo-search {
+  flex: 1 1 200px;
+  max-width: 320px;
+  margin-left: auto;
+}
+
+.lingo-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.lingo-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.lingo-card-row:hover {
+  background: var(--surface-hover);
+}
+.lingo-card-text {
+  flex: 1 1 260px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.9rem;
+}
+.lingo-term {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.lingo-meaning::before {
+  content: '→ ';
+  color: var(--muted);
+}
+.lingo-row-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.lingo-flash,
+.lingo-quiz,
+.lingo-done {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  text-align: center;
+  padding-block: 2rem;
+}
+.lingo-flash-term {
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.2;
+}
+.lingo-flash-meaning {
+  font-size: 1.3rem;
+  margin: 0;
+}
+.lingo-grades {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.lingo-grades .btn {
+  display: grid;
+  min-width: 6.5rem;
+}
+.lingo-key {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.lingo-quiz-prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+}
+.lingo-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.6rem;
+  width: min(100%, 640px);
+}
+.lingo-choice {
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.lingo-choice:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+.lingo-choice:disabled {
+  cursor: default;
+}
+.lingo-choice.is-right {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+}
+.lingo-choice.is-wrong {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+.lingo-ok {
+  color: var(--ok);
+  font-weight: 600;
+}
+.lingo-bad {
+  color: var(--danger);
+  font-weight: 600;
+}
+.lingo-score {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  margin: 0;
+}
+.lingo-streak {
+  color: var(--warn);
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.lingo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.lingo-chip {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.lingo-chip.is-on {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.lingo-drill {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  text-align: center;
+}
+.lingo-kana-big {
+  font-size: clamp(3.5rem, 10vw, 5.5rem);
+  line-height: 1;
+  margin: 0.2rem 0;
+}
+.lingo-kana-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.6rem, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.lingo-kana-cell {
+  font: inherit;
+  display: grid;
+  justify-items: center;
+  padding: 0.45rem 0.2rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+}
+.lingo-kana-cell:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+.lingo-kana-cell span {
+  font-size: 1.5rem;
+}
+.lingo-kana-cell small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 720px) {
+  .lingo-tabs {
+    margin-left: 0;
+  }
+  .lingo-search {
+    margin-left: 0;
+    max-width: none;
+  }
+}

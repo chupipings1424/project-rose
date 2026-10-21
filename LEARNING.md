@@ -442,6 +442,133 @@ headers. That blocks a cheap *CSRF* trick where some other page shuts ROSE down.
 `keepPresence()` in `lifetime/system.ts` reconnects after 3 seconds if the stream breaks.
 That is an `async` loop stopped by an `AbortSignal`, the standard way to cancel `fetch`.
 
+## 15. ROSE Lingo: a real database (SQLite + EF Core)
+
+Projects 01-03 keep their data in files (an Excel workbook, JSON). ROSE Lingo (Project 04)
+needs to ask questions like *"which Japanese cards are due today?"* across hundreds of rows,
+so it uses a real database: **SQLite**, one file (`project-rose-api/data/lingo.db`) with no
+server to install. The API talks to it through **Entity Framework Core (EF Core)**, .NET's
+ORM: you write C# classes and LINQ, and EF Core writes the SQL.
+
+### The pieces
+
+| Piece | File (in project-rose-api) | Job |
+| --- | --- | --- |
+| Entities | `Rose.Domain/Lingo/Card.cs`, `QuizResult.cs` | Plain C# classes with the rules (no database code) |
+| `DbContext` | `Rose.Infrastructure/Lingo/LingoDbContext.cs` | The database session: `DbSet<Card> Cards`, and the table / index setup |
+| Migrations | `Rose.Infrastructure/Lingo/Migrations/` | Generated C# that creates or changes the tables, one step per change |
+| Migrator | `LingoDatabaseMigrator.cs` | On API start: creates `lingo.db` and applies new migrations |
+| Repository | `EfLingoRepository.cs` (behind `ILingoRepository`) | The only class that writes LINQ queries, so the services stay testable |
+| Design-time factory | `LingoDesignTimeFactory.cs` | Lets the `dotnet ef` tool build the DbContext without starting the API |
+
+### How to create a SQLite database with EF Core, step by step
+
+This is exactly how `lingo.db` was made. Run the commands in the **project-rose-api** folder.
+
+1. **Add the packages** (versions live in `Directory.Packages.props`):
+
+   ```powershell
+   dotnet add src/Rose.Infrastructure package Microsoft.EntityFrameworkCore.Sqlite
+   dotnet add src/Rose.Infrastructure package Microsoft.EntityFrameworkCore.Design
+   ```
+
+2. **Install the `dotnet ef` tool** for this repo only (a *local tool*, listed in
+   `.config/dotnet-tools.json`, so everyone gets the same version):
+
+   ```powershell
+   dotnet new tool-manifest          # once per repo (already done here)
+   dotnet tool install dotnet-ef --version 9.0.20
+   dotnet tool restore               # on a new PC: installs what the manifest lists
+   ```
+
+3. **Write the entity**: an ordinary class with an `Id`. EF Core can use a private
+   parameterless constructor, so the public constructor can still enforce your rules.
+
+4. **Write the `DbContext`** and describe tables with the **Fluent API** (keeps database
+   details out of the domain classes):
+
+   ```csharp
+   public sealed class LingoDbContext(DbContextOptions<LingoDbContext> options) : DbContext(options)
+   {
+       public DbSet<Card> Cards => Set<Card>();
+
+       protected override void OnModelCreating(ModelBuilder model)
+       {
+           model.Entity<Card>().HasKey(c => c.Id);
+           model.Entity<Card>().HasIndex(c => new { c.Language, c.DueOn }); // fast "due today"
+       }
+   }
+   ```
+
+5. **Register it** in dependency injection with a connection string pointing at the file:
+
+   ```csharp
+   services.AddDbContext<LingoDbContext>(o => o.UseSqlite("Data Source=data/lingo.db"));
+   ```
+
+6. **Create the first migration.** EF Core compares your classes with the last snapshot and
+   generates the C# that creates the tables:
+
+   ```powershell
+   dotnet ef migrations add InitialLingo `
+     --project src/Rose.Infrastructure --startup-project src/Rose.Infrastructure `
+     --context LingoDbContext --output-dir Lingo/Migrations
+   ```
+
+   Open the generated `*_InitialLingo.cs`: `Up()` creates the tables, `Down()` removes them.
+   Commit migrations like any other code.
+
+7. **Create the database file.** Either by hand:
+
+   ```powershell
+   dotnet ef database update --project src/Rose.Infrastructure --context LingoDbContext
+   ```
+
+   or, like ROSE, automatically when the API starts: `LingoDatabaseMigrator` calls
+   `db.Database.MigrateAsync()`. If `lingo.db` is missing it is created; if there are new
+   migrations they are applied. Nothing to remember.
+
+8. **Change the model later** (say, add `Card.Example`): edit the class, run
+   `dotnet ef migrations add AddCardExample ...` (same options as step 6), restart the API.
+   Your existing cards are kept; only the new column is added.
+
+### Look inside the database
+
+`lingo.db` is a normal file. Open it with **DB Browser for SQLite** (free, sqlitebrowser.org)
+or the **SQLite Viewer** extension in VS Code, and you can browse the `Cards` and
+`QuizResults` tables or run SQL such as
+`SELECT Term, DueOn FROM Cards WHERE Language = 'ja' ORDER BY DueOn;`.
+Close ROSE first if you want to edit rows by hand. (`lingo.db-wal` / `-shm` next to it are
+SQLite's write-ahead log; leave them alone.) Back it up by copying `lingo.db` while ROSE is closed.
+
+### Things that tripped me up (and the fixes)
+
+- **"The model has pending changes".** The unit test `LingoDbContextTests` calls
+  `db.Database.HasPendingModelChanges()`, so forgetting step 8 fails the build, not production.
+- **SQLite has no `DateTimeOffset` type.** EF Core stores it as text and cannot `ORDER BY`
+  it in SQL, so `LingoService` sorts those in memory. `DateOnly` (e.g. `DueOn`) works fine in SQL.
+- **Case-insensitive duplicates.** "Wasser" and "wasser" should be the same card:
+  `EF.Functions.Collate(c.Term, "NOCASE") == term` asks SQLite to compare without case.
+- **The analyzers complained about generated code.** `.editorconfig` marks
+  `**/Migrations/*.cs` as `generated_code = true`.
+- **Tests use the real SQLite engine**, not EF Core's in-memory fake: unit tests use an
+  in-memory SQLite connection, integration tests a `lingo.db` in a temp folder. So they also
+  prove the migrations and the unique "one quiz per day" index really work.
+
+### On the React side
+
+- **Spaced repetition** lives in the API (`Rose.Domain/Lingo/Srs.cs`, based on Anki's SM-2):
+  *Again / Hard / Good / Easy* decides when you see a card next. The page only shows cards and
+  sends the grade.
+- **`key` resets a component.** `<ReviewSession key={ids}>` and `<KanaDrill key={script-level}>`
+  start fresh when their input changes, without a `useEffect` that copies props into state.
+- **Keyboard shortcuts** (Space to reveal, 1-4 to grade) are one `keydown` listener added in
+  `useEffect` and removed in its cleanup.
+- **Text-to-speech** is the browser's free `speechSynthesis` (`lingo/lib/speech.ts`). Missing a
+  Japanese or Korean voice? Windows Settings > Time & language > Speech > *Add voices*.
+- **`lang` attributes** (`<span lang="ja">`) make the browser pick the right font for kana,
+  hangul and kanji.
+
 ---
 
 ## Exercises (easy → harder)
@@ -458,3 +585,7 @@ That is an `async` loop stopped by an `AbortSignal`, the standard way to cancel 
 8. Add a "yearly" repeat rule: first in the API's reminder rules (write the xUnit tests
    first), then in `REPEAT_RULES` / `describeRepeat` in `reminders/model.ts` and the form
    (section 14).
+9. ROSE Lingo: add an `Example` sentence to cards. New property, a migration
+   (section 15, step 8), the API contract and the card form.
+10. Add a "Hardest cards" list (most `Lapses`) to the Cards page: a new repository query,
+    an endpoint, and a `useAsync` call.

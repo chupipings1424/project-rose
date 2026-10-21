@@ -11,13 +11,15 @@ Log in with an access token, pick a theme, walk through the gate, and launch you
 | 01 | **Payment Tracker** | A React rebuild of a Flask + Excel app: loans, instalments, payment report, import/export |
 | 02 | **Personal Budget** | Revenue and expense lines, net per month, a budget report. Same Excel workbook as 01 |
 | 03 | **Reminders** | Repeat rules, a Windows always-on-top alarm popup and **Web Push** notifications (iPhone too) |
+| 04 | **ROSE Lingo** | Learn Japanese, Korean, German or English: translate, flashcards with spaced repetition, a daily quiz streak, kana drills. **SQLite + EF Core** |
 
 **Tech:** React 19, TypeScript (strict), Vite, React Router, Recharts, Vitest + Testing
 Library, oxlint, Service Workers, PWA manifest. Backend: ASP.NET Core 9, Swagger, JWT, xUnit
 (see project-rose-api).
 
-Personal data never leaves the PC: payments live in a local Excel workbook and reminders in a
-local JSON file, both in the API's git-ignored `data/` folder.
+Personal data stays on the PC: payments live in a local Excel workbook, reminders in a local
+JSON file and Lingo cards in a local SQLite database, all in the API's git-ignored `data/`
+folder. (Only text you choose to *translate* is sent to the MyMemory service.)
 
 > New to React or TypeScript? Read **[LEARNING.md](LEARNING.md)**. It walks
 > through this codebase concept by concept.
@@ -140,8 +142,8 @@ flies through and you arrive at your projects.
 | Fullmetal Alchemist | the **Gate of Truth**: the circle draws itself, the eye opens, the black hands reach out | heartbeat and choir |
 | Death Note | the notebook opens, the pen writes "ROSE" and ink floods the screen | page flip, pen scratches, bell |
 | Dragon Ball Super | the 4-star ball charges, the aura flares, Kamehameha! | rising ki charge and blast |
-| Naruto | the Sharingan opens, spins into the Mangeky? and casts a genjutsu | spinning whoosh and pulse |
-| Bleach | the Senkaimon opens, hell butterflies, blood chains, Getsuga Tensh? | dark slash |
+| Naruto | the Sharingan opens, spins into the Mangekyō and casts a genjutsu | spinning whoosh and pulse |
+| Bleach | the Senkaimon opens, hell butterflies, blood chains, Getsuga Tenshō | dark slash |
 | Code Geass | the eye activates and the Geass sigil flies at you over a chessboard | choir and command |
 
 `GateIntro.tsx` is only the shell (timers, sound, HUD, Skip). It looks up the scene for the
@@ -205,6 +207,30 @@ The scheduler is a .NET `BackgroundService` inside the API. Everything runs on t
 the API listens on `127.0.0.1`. ROSE must be running (see *Closing ROSE*). Reminders that
 fall due while it is closed ring as soon as it starts again.
 
+## ROSE Lingo (Project 04)
+
+A language-learning tool for **Japanese, Korean, German and English**. Pick the language you
+are learning at the top right; ROSE remembers it.
+
+| Tab | What it does |
+| --- | --- |
+| **Translate** | Translate a word or short sentence (free MyMemory service, max 500 characters). Japanese and Korean show a **reading** (romaji / romanization). One click saves it as a flashcard |
+| **Cards** | Your deck: add, search, edit, delete. **Add starter deck** loads a set of everyday words (Japanese, Korean, German) |
+| **Review** | Flashcards that are due today. Reveal (Space), then grade *Again / Hard / Good / Easy* (keys 1-4). Spaced repetition (SM-2, like Anki) decides when you see each card again |
+| **Daily quiz** | Optional: 5 multiple-choice questions a day (meaning, word, or listening). Doing it daily builds a 🔥 streak; missed words go back into today's reviews |
+| **Kana** | Japanese only: hiragana / katakana drill (basic, voiced, all) and a clickable chart |
+
+🔊 buttons read words aloud with the browser's built-in voices. If Japanese or Korean is
+silent, add the voice in Windows Settings > Time & language > Speech.
+
+Cards and quiz results live in `project-rose-api/data/lingo.db`, a **SQLite** database the API
+creates on first start. How it was built, and how to make your own, is in
+[LEARNING.md, section 15](LEARNING.md#15-rose-lingo-a-real-database-sqlite--ef-core).
+
+> **Translate needs the internet** and some company networks block MyMemory (you will see
+> *"The translator is not reachable"*). Everything else works offline. Do not translate
+> anything private: the text is sent to MyMemory.
+
 ## Scripts
 
 | Command | What it does |
@@ -241,6 +267,7 @@ src/
     payment-tracker/    Payments + Report pages and their components
     budget/             Budget + Report pages and their components
     reminders/          Reminders page, form, model.ts (types), push opt-in (lib/push.ts)
+    lingo/              ROSE Lingo: Translate, Cards, Review, Daily quiz, Kana pages; speech + kana drill helpers
   styles/global.css     design system + theme CSS variables
 public/
   sw.js                 service worker: shows push notifications

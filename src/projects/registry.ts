@@ -1,4 +1,6 @@
 import { BUDGET_BASE } from './budget/paths'
+import { lingoApi } from './lingo/api/client'
+import { LINGO_BASE } from './lingo/paths'
 import { TRACKER_BASE } from './payment-tracker/paths'
 import { remindersApi } from './reminders/api/client'
 import { friendlyTime } from './reminders/lib/time'
@@ -83,6 +85,23 @@ export const PROJECTS: ProjectInfo[] = [
         { label: 'Ringing', value: String(active.filter((r) => r.ringing).length) },
         { label: 'Active', value: String(active.length) },
         { label: 'Next', value: next ? friendlyTime(next) : 'None' },
+      ]
+    },
+  },
+  {
+    id: 'lingo',
+    name: 'ROSE Lingo',
+    tagline: 'Translate · Flashcards · Daily quiz',
+    description:
+      'Learn Japanese, Korean, German or English: translate, save flashcards, review them on a spaced-repetition schedule and keep a daily quiz streak.',
+    path: LINGO_BASE,
+    icon: '文',
+    loadStats: async () => {
+      const stats = await lingoApi.stats()
+      return [
+        { label: 'Cards', value: String(stats.cards) },
+        { label: 'Due', value: String(stats.due) },
+        { label: 'Streak', value: `${stats.streak}d` },
       ]
     },
   },
