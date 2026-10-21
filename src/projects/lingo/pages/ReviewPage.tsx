@@ -27,7 +27,7 @@ export default function ReviewPage({ language }: ReviewPageProps) {
   if (due.data.length === 0)
     return (
       <EmptyState title="Nothing to review">
-        All caught up. Add cards in <Link to={lingoPaths.cards}>Cards</Link> or come back tomorrow.
+        All caught up. Add cards in <Link to={lingoPaths.cards}>Flashcards</Link> or come back tomorrow.
       </EmptyState>
     )
   // A new set of due cards means a fresh session (the key resets its state).
@@ -94,6 +94,9 @@ function ReviewSession({ cards, language, onRestart }: ReviewSessionProps) {
         <button type="button" className="btn ghost" onClick={onRestart}>
           Check for more
         </button>
+        <Link className="btn ghost" to={lingoPaths.cards}>
+          Back to flashcards
+        </Link>
       </section>
     )
 

@@ -91,9 +91,9 @@ export const PROJECTS: ProjectInfo[] = [
   {
     id: 'lingo',
     name: 'ROSE Lingo',
-    tagline: 'Translate · Flashcards · Daily quiz',
+    tagline: 'Offline translator · Flashcards · Quizzes',
     description:
-      'Learn Japanese, Korean, German or English: translate, save flashcards, review them on a spaced-repetition schedule and keep a daily quiz streak.',
+      'Translate offline between Tagalog, English, Japanese, Korean, Chinese and German, save words as flashcards, review them on a spaced-repetition schedule and quiz yourself whenever you like.',
     path: LINGO_BASE,
     icon: '文',
     loadStats: async () => {
@@ -101,7 +101,7 @@ export const PROJECTS: ProjectInfo[] = [
       return [
         { label: 'Cards', value: String(stats.cards) },
         { label: 'Due', value: String(stats.due) },
-        { label: 'Streak', value: `${stats.streak}d` },
+        { label: 'Learned', value: String(stats.learned) },
       ]
     },
   },

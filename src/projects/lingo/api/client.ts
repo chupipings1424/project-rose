@@ -3,13 +3,16 @@ import type {
   Card,
   CardInput,
   Grade,
+  HangulEntry,
   KanaEntry,
   LanguageCode,
   LingoStats,
   Quiz,
+  QuizMode,
   QuizQuestion,
   QuizResult,
   Translation,
+  TranslatorStatus,
 } from '../model'
 
 /** The ROSE Lingo part of the API (Vite proxies /api, see vite.config.ts). */
@@ -52,28 +55,30 @@ interface QuizQuestionDto {
   answer: number
 }
 
+interface QuizDto {
+  language: LanguageCode
+  mode: QuizMode
+  questions: QuizQuestionDto[]
+  cards_needed: number
+}
+
 interface QuizResultDto {
+  id: number
   day: string
   language: LanguageCode
+  mode: QuizMode
   score: number
   total: number
   completed_at: string
 }
 
-interface QuizDto {
-  day: string
-  language: LanguageCode
-  questions: QuizQuestionDto[]
-  cards_needed: number
-  completed: QuizResultDto | null
-}
-
-interface StatsDto {
-  cards: number
-  due: number
-  learned: number
-  streak: number
-  quiz_done_today: boolean
+interface HangulDto {
+  letter: string
+  romanization: string
+  group: HangulEntry['group']
+  name: string
+  syllable: string
+  syllable_romanization: string
 }
 
 export const cardFromDto = (dto: CardDto): Card => ({
@@ -94,18 +99,19 @@ export const cardFromDto = (dto: CardDto): Card => ({
 })
 
 const resultFromDto = (dto: QuizResultDto): QuizResult => ({
+  id: dto.id,
   day: dto.day,
   language: dto.language,
+  mode: dto.mode,
   score: dto.score,
   total: dto.total,
   completedAt: dto.completed_at,
 })
 
 const quizFromDto = (dto: QuizDto): Quiz => ({
-  day: dto.day,
   language: dto.language,
+  mode: dto.mode,
   cardsNeeded: dto.cards_needed,
-  completed: dto.completed ? resultFromDto(dto.completed) : null,
   questions: dto.questions.map((q) => ({
     number: q.number,
     cardId: q.card_id,
@@ -140,6 +146,7 @@ export const lingoApi = {
       translationReading: dto.translation_reading,
     }
   },
+  translatorStatus: () => call<TranslatorStatus>('/translator'),
   cards: async (language: LanguageCode) => (await call<CardDto[]>(`/cards${q(language)}`)).map(cardFromDto),
   due: async (language: LanguageCode) => (await call<CardDto[]>(`/cards/due${q(language)}`)).map(cardFromDto),
   createCard: async (language: LanguageCode, input: CardInput) =>
@@ -151,17 +158,31 @@ export const lingoApi = {
     cardFromDto(await call<CardDto>(`/cards/${id(cardId)}/review`, 'POST', { grade })),
   importStarter: (language: LanguageCode) =>
     call<{ added: number; skipped: number }>(`/starter/${encodeURIComponent(language)}`, 'POST'),
-  quiz: async (language: LanguageCode) => quizFromDto(await call<QuizDto>(`/quiz${q(language)}`)),
-  submitQuiz: async (language: LanguageCode, results: { cardId: string; correct: boolean }[]) =>
+  /** "Take a quiz": `count` random cards from the deck. */
+  takeQuiz: async (language: LanguageCode, count: number) =>
+    quizFromDto(await call<QuizDto>('/quiz', 'POST', { language, count })),
+  /** "Make a quiz": exactly the cards you picked. */
+  makeQuiz: async (language: LanguageCode, cardIds: string[]) =>
+    quizFromDto(await call<QuizDto>('/quiz', 'POST', { language, card_ids: cardIds })),
+  submitQuiz: async (language: LanguageCode, mode: QuizMode, results: { cardId: string; correct: boolean }[]) =>
     resultFromDto(
-      await call<QuizResultDto>('/quiz', 'POST', {
+      await call<QuizResultDto>('/quiz/results', 'POST', {
         language,
+        mode,
         results: results.map((r) => ({ card_id: r.cardId, correct: r.correct })),
       }),
     ),
-  stats: async (language?: LanguageCode): Promise<LingoStats> => {
-    const dto = await call<StatsDto>(`/stats${language ? q(language) : ''}`)
-    return { cards: dto.cards, due: dto.due, learned: dto.learned, streak: dto.streak, quizDoneToday: dto.quiz_done_today }
-  },
+  /** Past quiz scores, newest first. */
+  quizHistory: async (language: LanguageCode) => (await call<QuizResultDto[]>(`/quiz/results${q(language)}`)).map(resultFromDto),
+  stats: (language?: LanguageCode) => call<LingoStats>(`/stats${language ? q(language) : ''}`),
   kana: () => call<KanaEntry[]>('/kana'),
+  hangul: async (): Promise<HangulEntry[]> =>
+    (await call<HangulDto[]>('/hangul')).map((h) => ({
+      letter: h.letter,
+      romanization: h.romanization,
+      group: h.group,
+      name: h.name,
+      syllable: h.syllable,
+      syllableRomanization: h.syllable_romanization,
+    })),
 }

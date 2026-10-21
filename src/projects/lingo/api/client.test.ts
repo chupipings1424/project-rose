@@ -36,30 +36,65 @@ describe('lingoApi', () => {
     expect(card).toMatchObject({ id: 'c1', intervalDays: 6, dueOn: '2026-01-07', lastReviewedOn: '2026-01-01', isDue: false })
   })
 
-  it('sends quiz answers in snake_case', async () => {
+  it('builds random and hand-picked quizzes', async () => {
     const fetchMock = vi.fn((_url: RequestInfo | URL, _init?: RequestInit) =>
-      json({ day: '2026-01-01', language: 'ja', score: 1, total: 2, completed_at: '2026-01-01T09:00:00+00:00' }),
+      json({ language: 'ko', mode: 'custom', cards_needed: 0, questions: [{ number: 1, card_id: 'a', kind: 'meaning', prompt: '물', reading: 'mul', choices: ['water', 'fire', 'tree', 'sky'], answer: 0 }] }),
     )
     vi.stubGlobal('fetch', fetchMock)
 
-    const result = await lingoApi.submitQuiz('ja', [
+    await lingoApi.takeQuiz('ko', 10)
+    const quiz = await lingoApi.makeQuiz('ko', ['a', 'b'])
+
+    expect(String(fetchMock.mock.calls[0][0])).toBe('/api/lingo/quiz')
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({ language: 'ko', count: 10 })
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({ language: 'ko', card_ids: ['a', 'b'] })
+    expect(quiz).toMatchObject({ mode: 'custom', cardsNeeded: 0, questions: [{ cardId: 'a', prompt: '물' }] })
+  })
+
+  it('sends quiz answers in snake_case', async () => {
+    const fetchMock = vi.fn((_url: RequestInfo | URL, _init?: RequestInit) =>
+      json({ id: 7, day: '2026-01-01', language: 'ja', mode: 'random', score: 1, total: 2, completed_at: '2026-01-01T09:00:00+00:00' }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await lingoApi.submitQuiz('ja', 'random', [
       { cardId: 'a', correct: true },
       { cardId: 'b', correct: false },
     ])
 
     const [url, init] = fetchMock.mock.calls[0]
-    expect(String(url)).toBe('/api/lingo/quiz')
+    expect(String(url)).toBe('/api/lingo/quiz/results')
     expect(init?.method).toBe('POST')
     expect(JSON.parse(String(init?.body))).toEqual({
       language: 'ja',
+      mode: 'random',
       results: [
         { card_id: 'a', correct: true },
         { card_id: 'b', correct: false },
       ],
     })
-    expect(result).toEqual({ day: '2026-01-01', language: 'ja', score: 1, total: 2, completedAt: '2026-01-01T09:00:00+00:00' })
+    expect(result).toEqual({
+      id: 7,
+      day: '2026-01-01',
+      language: 'ja',
+      mode: 'random',
+      score: 1,
+      total: 2,
+      completedAt: '2026-01-01T09:00:00+00:00',
+    })
   })
 
+  it('maps the Hangul chart', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        json([{ letter: 'ㄱ', romanization: 'g / k', group: 'consonant', name: '기역 (giyeok)', syllable: '가', syllable_romanization: 'ga' }]),
+      ),
+    )
+    expect(await lingoApi.hangul()).toEqual([
+      { letter: 'ㄱ', romanization: 'g / k', group: 'consonant', name: '기역 (giyeok)', syllable: '가', syllableRomanization: 'ga' },
+    ])
+  })
   it('maps translation readings', async () => {
     vi.stubGlobal(
       'fetch',

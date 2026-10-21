@@ -445,7 +445,7 @@ That is an `async` loop stopped by an `AbortSignal`, the standard way to cancel 
 ## 15. ROSE Lingo: a real database (SQLite + EF Core)
 
 Projects 01-03 keep their data in files (an Excel workbook, JSON). ROSE Lingo (Project 04)
-needs to ask questions like *"which Japanese cards are due today?"* across hundreds of rows,
+needs to ask questions like *"which Korean cards are due today?"* across hundreds of rows,
 so it uses a real database: **SQLite**, one file (`project-rose-api/data/lingo.db`) with no
 server to install. The API talks to it through **Entity Framework Core (EF Core)**, .NET's
 ORM: you write C# classes and LINQ, and EF Core writes the SQL.
@@ -532,6 +532,12 @@ This is exactly how `lingo.db` was made. Run the commands in the **project-rose-
    `dotnet ef migrations add AddCardExample ...` (same options as step 6), restart the API.
    Your existing cards are kept; only the new column is added.
 
+   A real example: v2 replaced the daily quiz with on-demand quizzes. `QuizResult` got a
+   `Mode` (`random` / `custom`) and lost its "one quiz per language per day" unique index.
+   `dotnet ef migrations add OnDemandQuiz ...` generated `*_OnDemandQuiz.cs`; its `Up()` also
+   deletes the old daily-quiz rows (`migrationBuilder.Sql(...)`), because a migration can
+   move or clean data as well as change tables.
+
 ### Look inside the database
 
 `lingo.db` is a normal file. Open it with **DB Browser for SQLite** (free, sqlitebrowser.org)
@@ -553,21 +559,53 @@ SQLite's write-ahead log; leave them alone.) Back it up by copying `lingo.db` wh
   `**/Migrations/*.cs` as `generated_code = true`.
 - **Tests use the real SQLite engine**, not EF Core's in-memory fake: unit tests use an
   in-memory SQLite connection, integration tests a `lingo.db` in a temp folder. So they also
-  prove the migrations and the unique "one quiz per day" index really work.
+  prove the migrations really work against the same engine as production.
 
 ### On the React side
 
 - **Spaced repetition** lives in the API (`Rose.Domain/Lingo/Srs.cs`, based on Anki's SM-2):
   *Again / Hard / Good / Easy* decides when you see a card next. The page only shows cards and
   sends the grade.
-- **`key` resets a component.** `<ReviewSession key={ids}>` and `<KanaDrill key={script-level}>`
+- **`key` resets a component.** `<ReviewSession key={ids}>` and `<Drill key={script + '-' + level}>`
   start fresh when their input changes, without a `useEffect` that copies props into state.
 - **Keyboard shortcuts** (Space to reveal, 1-4 to grade) are one `keydown` listener added in
   `useEffect` and removed in its cleanup.
-- **Text-to-speech** is the browser's free `speechSynthesis` (`lingo/lib/speech.ts`). Missing a
-  Japanese or Korean voice? Windows Settings > Time & language > Speech > *Add voices*.
+- **Text-to-speech** is the browser's free `speechSynthesis` (`lingo/lib/speech.ts`).
+  `pickVoice` tries the exact tag (`zh-TW`), then any voice of the same language (`zh-*`).
+  Missing a voice? Windows Settings > Time & language > Speech > *Add voices*.
+- **One page, many states.** `QuizPage` is a tiny state machine: `start` (Take / Make /
+  history) → `run` → `done`.
+- **Show the fix, not just the error.** `TranslatePage` asks `GET /api/lingo/translator`
+  first; when the model is missing it shows the install steps instead of a failing button.
 - **`lang` attributes** (`<span lang="ja">`) make the browser pick the right font for kana,
   hangul and kanji.
+
+### An offline translator in .NET (NLLB-200 + ONNX Runtime)
+
+ROSE Lingo translates without the internet. The model is **NLLB-200 distilled 600M**
+("No Language Left Behind", by Meta), exported to **ONNX**, a portable file format for
+neural networks, and run by **Microsoft.ML.OnnxRuntime** inside the API.
+
+| Piece | File (in project-rose-api) | Job |
+| --- | --- | --- |
+| Downloader | `setup-lingo.cmd` / `setup-lingo.ps1` | Fetches the model files once into `data/models/nllb-200-distilled-600M` (resumable, skips what exists) |
+| Model files | `NllbModelFiles.cs` | Finds the files; "not installed" becomes a friendly 503 |
+| Tokenizer | `NllbVocabulary.cs` | Text → numbers with the SentencePiece model (`Microsoft.ML.Tokenizers`) and back |
+| Model | `OnnxTranslationModel.cs` | Runs the encoder once, then the decoder one token at a time |
+| Decoding | `GreedyDecoder.cs` | Picks the most likely next token until end-of-sentence. Pure C#, unit tested with a fake model |
+| Translator | `NllbTranslator.cs` | Splits text into sentences, loads the model on first use, one translation at a time (`SemaphoreSlim`) |
+
+How a translation runs: `"Salamat po"` → tokens `[tgl_Latn, ▁Sal, amat, ▁po, </s>]` → the
+encoder turns them into vectors → the decoder starts with `[</s>, eng_Latn]` (the language
+code tells it to write English) and adds the best next token until `</s>` → `"Thank you"`.
+
+Things worth knowing:
+
+- **Tests do not need the 1 GB model.** `ITranslator` is an interface; integration tests use a
+  fake, and the decoder is tested with a scripted `ITranslationModel`.
+- **Readings are separate.** Romaji, Hangul romanization and pinyin come from small
+  rule-based romanizers in `Rose.Domain/Lingo` (pinyin data from *pypinyin*, MIT).
+- **Licence.** NLLB-200 is **CC-BY-NC 4.0**: fine for a personal project, not for selling.
 
 ---
 

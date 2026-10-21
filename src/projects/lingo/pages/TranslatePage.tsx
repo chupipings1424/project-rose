@@ -1,20 +1,24 @@
 import { useState, type FormEvent } from 'react'
 import { useToast } from '../../../components/toast/useToast'
+import { useAsync } from '../../../hooks/useAsync'
 import { lingoApi } from '../api/client'
 import { SpeakButton } from '../components/SpeakButton'
 import { cardFromTranslation } from '../lib/translation'
-import { LANGUAGES, languageOf, type Language, type LanguageCode, type Translation } from '../model'
+import { DEFAULT_FROM, DEFAULT_TO, LANGUAGES, languageOf, type LanguageCode, type Translation } from '../model'
 
 const MAX_LENGTH = 500
 
 interface TranslatePageProps {
-  language: Language
+  /** The language picked on Flashcards / Quiz: "Save as card" prefers that deck. */
+  learning: LanguageCode
 }
 
-export default function TranslatePage({ language }: TranslatePageProps) {
+/** The main screen: an offline translator. Saving a result as a flashcard is optional. */
+export default function TranslatePage({ learning }: TranslatePageProps) {
   const notify = useToast()
-  const [from, setFrom] = useState<LanguageCode>(language.code === 'en' ? 'ja' : 'en')
-  const [to, setTo] = useState<LanguageCode>(language.code)
+  const status = useAsync(() => lingoApi.translatorStatus(), [])
+  const [from, setFrom] = useState<LanguageCode>(DEFAULT_FROM)
+  const [to, setTo] = useState<LanguageCode>(DEFAULT_TO)
   const [text, setText] = useState('')
   const [result, setResult] = useState<Translation | null>(null)
   const [busy, setBusy] = useState(false)
@@ -49,24 +53,44 @@ export default function TranslatePage({ language }: TranslatePageProps) {
       setError(caught instanceof Error ? caught.message : 'Translation failed.')
     } finally {
       setBusy(false)
+      status.reload() // "not installed" / "loaded" may have changed
     }
   }
 
-  const card = result ? cardFromTranslation(result, language.code) : null
+  const draft = result ? cardFromTranslation(result, learning) : null
 
   async function saveCard() {
-    if (!card) return
+    if (!draft) return
     try {
-      await lingoApi.createCard(language.code, card)
+      await lingoApi.createCard(draft.language, draft.input)
       setSaved(true)
-      notify('Saved as a flashcard', 'success')
+      notify(`Saved to your ${languageOf(draft.language).name} flashcards`, 'success')
     } catch (caught) {
       notify(caught instanceof Error ? caught.message : 'Could not save the card.', 'error')
     }
   }
 
+  const notInstalled = status.data && !status.data.installed
+
   return (
     <div className="lingo-page">
+      {notInstalled && (
+        <section className="card lingo-setup" role="status">
+          <h2 className="section-title">Install the offline translator</h2>
+          <p>{status.data?.message}</p>
+          <ol className="lingo-steps">
+            <li>
+              On a PC with internet, double-click <code>setup-lingo.cmd</code> in the <code>project-rose-api</code> folder (about 1 GB, one time).
+            </li>
+            <li>
+              Other laptops: copy <code>project-rose-api\data\models</code> to the same place there. No internet needed.
+            </li>
+            <li>Restart ROSE.</li>
+          </ol>
+          <p className="muted small">Flashcards, quizzes and the alphabet work without it.</p>
+        </section>
+      )}
+
       <section className="card">
         <h2 className="section-title">Translate</h2>
         <form className="stack-form" onSubmit={translate}>
@@ -103,7 +127,7 @@ export default function TranslatePage({ language }: TranslatePageProps) {
               value={text}
               maxLength={MAX_LENGTH}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Type a word or a short sentence…"
+              placeholder="Type a word or a few sentences…"
               required
             />
           </label>
@@ -122,7 +146,8 @@ export default function TranslatePage({ language }: TranslatePageProps) {
           )}
         </form>
         <p className="muted small">
-          Translations come from the free MyMemory service, so the text leaves your PC. Do not paste anything private.
+          Runs offline on this PC ({status.data?.engine ?? 'NLLB-200'}) - your text never leaves it.
+          {status.data?.installed && !status.data.loaded && ' The first translation takes a few seconds while the model loads.'}
         </p>
       </section>
 
@@ -142,11 +167,12 @@ export default function TranslatePage({ language }: TranslatePageProps) {
             </p>
             {result.translationReading && <p className="lingo-reading">{result.translationReading}</p>}
           </div>
-          {card && (
+          {draft && (
             <div className="form-actions span-all">
               <button type="button" className="btn ghost" onClick={() => void saveCard()} disabled={saved}>
-                {saved ? '✓ Saved' : '＋ Save as card'}
+                {saved ? '✓ Saved' : `＋ Save as ${languageOf(draft.language).name} card`}
               </button>
+              <span className="muted small">Optional - for Flashcards and quizzes.</span>
             </div>
           )}
         </section>

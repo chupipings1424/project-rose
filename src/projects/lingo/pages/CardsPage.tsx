@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ConfirmDialog } from '../../../components/ConfirmDialog'
 import { Modal } from '../../../components/Modal'
 import { EmptyState, ErrorState, LoadingState } from '../../../components/States'
@@ -9,6 +10,7 @@ import { CardForm } from '../components/CardForm'
 import { SpeakButton } from '../components/SpeakButton'
 import { dueLabel } from '../lib/dates'
 import type { Card, CardInput, Language } from '../model'
+import { lingoPaths } from '../paths'
 
 interface CardsPageProps {
   language: Language
@@ -29,6 +31,7 @@ export default function CardsPage({ language }: CardsPageProps) {
     if (!needle) return list
     return list.filter((c) => [c.term, c.reading, c.meaning, c.notes].some((field) => field.toLowerCase().includes(needle)))
   }, [cards.data, search])
+  const dueCount = cards.data?.filter((c) => c.isDue).length ?? 0
 
   async function create(input: CardInput) {
     await lingoApi.createCard(language.code, input)
@@ -72,6 +75,20 @@ export default function CardsPage({ language }: CardsPageProps) {
 
   return (
     <div className="lingo-page">
+      <section className="card lingo-review-cta">
+        <div>
+          <h2 className="section-title">{language.name} flashcards</h2>
+          <p className="muted small">
+            {dueCount > 0
+              ? `${dueCount} card${dueCount === 1 ? '' : 's'} to review today.`
+              : 'Nothing due right now - cards come back on a spaced-repetition schedule.'}
+          </p>
+        </div>
+        <Link className={`btn ${dueCount > 0 ? 'primary' : 'ghost'}`} to={lingoPaths.review}>
+          Review{dueCount > 0 ? ` (${dueCount})` : ''}
+        </Link>
+      </section>
+
       <section className="card">
         <h2 className="section-title">New {language.name} card</h2>
         <CardForm language={language} submitLabel="Add card" onSave={create} />

@@ -11,7 +11,7 @@ Log in with an access token, pick a theme, walk through the gate, and launch you
 | 01 | **Payment Tracker** | A React rebuild of a Flask + Excel app: loans, instalments, payment report, import/export |
 | 02 | **Personal Budget** | Revenue and expense lines, net per month, a budget report. Same Excel workbook as 01 |
 | 03 | **Reminders** | Repeat rules, a Windows always-on-top alarm popup and **Web Push** notifications (iPhone too) |
-| 04 | **ROSE Lingo** | Learn Japanese, Korean, German or English: translate, flashcards with spaced repetition, a daily quiz streak, kana drills. **SQLite + EF Core** |
+| 04 | **ROSE Lingo** | Offline translator (Tagalog, English, Japanese, Korean, Chinese, German), flashcards with spaced repetition, quizzes, kana and Hangul drills. **SQLite + EF Core + ONNX Runtime** |
 
 **Tech:** React 19, TypeScript (strict), Vite, React Router, Recharts, Vitest + Testing
 Library, oxlint, Service Workers, PWA manifest. Backend: ASP.NET Core 9, Swagger, JWT, xUnit
@@ -19,7 +19,7 @@ Library, oxlint, Service Workers, PWA manifest. Backend: ASP.NET Core 9, Swagger
 
 Personal data stays on the PC: payments live in a local Excel workbook, reminders in a local
 JSON file and Lingo cards in a local SQLite database, all in the API's git-ignored `data/`
-folder. (Only text you choose to *translate* is sent to the MyMemory service.)
+folder. Even the Lingo translator runs offline, on this PC.
 
 > New to React or TypeScript? Read **[LEARNING.md](LEARNING.md)**. It walks
 > through this codebase concept by concept.
@@ -209,28 +209,38 @@ fall due while it is closed ring as soon as it starts again.
 
 ## ROSE Lingo (Project 04)
 
-A language-learning tool for **Japanese, Korean, German and English**. Pick the language you
-are learning at the top right; ROSE remembers it.
+A translator and language-learning tool for **Tagalog, English, Japanese, Korean, Chinese
+(Simplified and Traditional) and German**. It works **fully offline**.
 
 | Tab | What it does |
 | --- | --- |
-| **Translate** | Translate a word or short sentence (free MyMemory service, max 500 characters). Japanese and Korean show a **reading** (romaji / romanization). One click saves it as a flashcard |
-| **Cards** | Your deck: add, search, edit, delete. **Add starter deck** loads a set of everyday words (Japanese, Korean, German) |
-| **Review** | Flashcards that are due today. Reveal (Space), then grade *Again / Hard / Good / Easy* (keys 1-4). Spaced repetition (SM-2, like Anki) decides when you see each card again |
-| **Daily quiz** | Optional: 5 multiple-choice questions a day (meaning, word, or listening). Doing it daily builds a 🔥 streak; missed words go back into today's reviews |
-| **Kana** | Japanese only: hiragana / katakana drill (basic, voiced, all) and a clickable chart |
+| **Translate** | The main screen. Pick *From* and *To* (default **Tagalog → English**) and translate up to 500 characters. Japanese, Korean and Chinese show a **reading** (romaji / romanization / pinyin). **Save as card** is optional |
+| **Flashcards** | Your deck for the *Learning* language: add, search, edit, delete, **Add starter deck** (Tagalog, Japanese, Korean, Chinese, German). **Review** shows the cards that are due: reveal (Space), then grade *Again / Hard / Good / Easy* (keys 1-4). Spaced repetition (SM-2, like Anki) decides when you see each card again |
+| **Quiz** | Only when you want one. **Take a quiz**: 5, 10 or 20 random questions. **Make a quiz**: tick the cards to be tested on. Needs at least 4 cards. Scores are kept under *Recent quizzes*; missed words come back in today's reviews |
+| **Alphabet** | Hiragana, katakana and **Hangul**: a drill (basic or all) and a clickable chart that reads each letter aloud |
 
-🔊 buttons read words aloud with the browser's built-in voices. If Japanese or Korean is
-silent, add the voice in Windows Settings > Time & language > Speech.
+The *Learning* picker (top right, remembered) appears on Flashcards and Quiz only.
+🔊 buttons use the browser's built-in voices. If a language is silent, add its voice in
+Windows Settings > Time & language > Speech.
 
 Cards and quiz results live in `project-rose-api/data/lingo.db`, a **SQLite** database the API
 creates on first start. How it was built, and how to make your own, is in
 [LEARNING.md, section 15](LEARNING.md#15-rose-lingo-a-real-database-sqlite--ef-core).
 
-> **Translate needs the internet** and some company networks block MyMemory (you will see
-> *"The translator is not reachable"*). Everything else works offline. Do not translate
-> anything private: the text is sent to MyMemory.
+### Installing the offline translator (once per PC)
 
+The translator is **NLLB-200** (Meta's open translation model, distilled 600M, quantized, under 1 GB)
+running inside the API with **ONNX Runtime**. It is not in git; download it once:
+
+1. On a PC **with normal internet** (company networks may block Hugging Face), run
+   `project-rose-api\setup-lingo.cmd`. It downloads into
+   `project-rose-api\data\models\nllb-200-distilled-600M` and can resume if interrupted.
+2. For a laptop **without internet**, copy that `data\models` folder to the same place
+   in its `project-rose-api`.
+3. Restart ROSE. The first translation takes a few seconds while the model loads.
+
+Until then Translate shows these steps; flashcards, quizzes and the alphabet still work.
+The NLLB model is licensed **CC-BY-NC 4.0** (personal, non-commercial use only).
 ## Scripts
 
 | Command | What it does |
@@ -267,7 +277,7 @@ src/
     payment-tracker/    Payments + Report pages and their components
     budget/             Budget + Report pages and their components
     reminders/          Reminders page, form, model.ts (types), push opt-in (lib/push.ts)
-    lingo/              ROSE Lingo: Translate, Cards, Review, Daily quiz, Kana pages; speech + kana drill helpers
+    lingo/              ROSE Lingo: Translate, Flashcards, Review, Quiz, Alphabet pages; speech + drill helpers
   styles/global.css     design system + theme CSS variables
 public/
   sw.js                 service worker: shows push notifications

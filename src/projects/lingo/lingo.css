@@ -209,10 +209,89 @@
   font-size: 2.4rem;
   margin: 0;
 }
-.lingo-streak {
-  color: var(--warn);
-  font-size: 1.2rem;
+.lingo-quiz .lingo-list-head {
+  width: 100%;
+  justify-content: space-between;
   margin: 0;
+}
+.lingo-done .form-actions {
+  justify-content: center;
+}
+
+/* Translate: shown until setup-lingo.cmd has downloaded the offline model. */
+.lingo-setup {
+  border-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+}
+.lingo-setup p {
+  margin: 0.3rem 0;
+}
+.lingo-steps {
+  margin: 0.5rem 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+/* Flashcards: the "Review (n)" call to action above the deck. */
+.lingo-review-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+.lingo-review-cta .section-title,
+.lingo-review-cta p {
+  margin: 0;
+}
+
+/* Quiz: "Make a quiz" card picker and the score history. */
+.lingo-pick-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.lingo-pick {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+.lingo-pick input {
+  width: auto;
+  margin: 0;
+}
+.lingo-pick.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.lingo-pick .lingo-term {
+  font-size: 1.05rem;
+}
+.lingo-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.lingo-history li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem 4.5rem 3.5rem;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.35rem 0.2rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .lingo-chips {
@@ -275,6 +354,12 @@
 .lingo-kana-cell small {
   color: var(--muted);
   font-size: 0.72rem;
+}
+.lingo-hangul-grid {
+  grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr));
+}
+.lingo-kana-cell .lingo-syllable {
+  color: var(--accent-2);
 }
 
 @media (max-width: 720px) {
