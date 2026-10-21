@@ -48,7 +48,7 @@ export const workbookApi = {
     request<SchedulePreview>('/accounts/preview', json('POST', payload)),
   summary: (title: string) => request<Summary>(`/summary/${encodeURIComponent(title)}`),
   addPayment: (payload: NewPaymentPayload) =>
-    request<{ id: string; summary: Summary }>('/payments', json('POST', payload)),
+    request<{ id: string; settled: boolean; summary: Summary }>('/payments', json('POST', payload)),
   setPaymentStatus: (id: string, status: PaymentStatus, title: string) =>
     request<{ ok: true; summary: Summary }>(`/payments/${encodeURIComponent(id)}`, json('PATCH', { status, title })),
   deletePayment: (id: string) =>
