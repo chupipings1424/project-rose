@@ -593,7 +593,7 @@ neural networks, and run by **Microsoft.ML.OnnxRuntime** inside the API.
 | Tokenizer | `NllbVocabulary.cs` | Text → numbers with the SentencePiece model (`Microsoft.ML.Tokenizers`) and back |
 | Model | `OnnxTranslationModel.cs` | Runs the encoder once, then the decoder one token at a time |
 | Decoding | `GreedyDecoder.cs` | Picks the most likely next token until end-of-sentence. Pure C#, unit tested with a fake model |
-| Translator | `NllbTranslator.cs` | Splits text into sentences, loads the model on first use, one translation at a time (`SemaphoreSlim`) |
+| Translator | `NllbTranslator.cs` | Splits text into sentences, loads the model on first use, one translation at a time (`SemaphoreSlim`), unloads it after 2 idle minutes |
 
 How a translation runs: `"Salamat po"` → tokens `[tgl_Latn, ▁Sal, amat, ▁po, </s>]` → the
 encoder turns them into vectors → the decoder starts with `[</s>, eng_Latn]` (the language
@@ -603,6 +603,10 @@ Things worth knowing:
 
 - **Tests do not need the 1 GB model.** `ITranslator` is an interface; integration tests use a
   fake, and the decoder is tested with a scripted `ITranslationModel`.
+- **Memory on a budget.** The model only lives in memory while you use it (load on demand,
+  unload when idle). `OnnxTranslationModel.Load` also turns off ONNX Runtime's memory arena
+  and memory patterns, which would otherwise keep freed memory for later, and caps the CPU
+  threads (`Lingo:Threads`).
 - **Readings are separate.** Romaji, Hangul romanization and pinyin come from small
   rule-based romanizers in `Rose.Domain/Lingo` (pinyin data from *pypinyin*, MIT).
 - **Licence.** NLLB-200 is **CC-BY-NC 4.0**: fine for a personal project, not for selling.
