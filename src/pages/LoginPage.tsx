@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { BrandMark } from '../components/Brand'
-import { useEntrance } from '../intro/useEntrance'
 import { ThemePicker } from '../theme/ThemePicker'
 
 interface LocationState {
@@ -11,7 +10,6 @@ interface LocationState {
 
 export default function LoginPage() {
   const { isAuthenticated, login } = useAuth()
-  const entrance = useEntrance()
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as LocationState | null)?.from ?? '/projects'
@@ -21,7 +19,6 @@ export default function LoginPage() {
   const [reveal, setReveal] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [shakeKey, setShakeKey] = useState(0)
 
   if (isAuthenticated) return <Navigate to={from} replace />
 
@@ -31,15 +28,8 @@ export default function LoginPage() {
     setError(null)
     const result = await login(token)
     setBusy(false)
-    if (result.ok) {
-      // The gate overlay lives above the router, so it keeps playing while we navigate underneath.
-      entrance.open()
-      navigate(from, { replace: true })
-    } else {
-      entrance.deny()
-      setError(result.error)
-      setShakeKey((k) => k + 1) // changing `key` re-mounts the card, replaying the shake animation
-    }
+    if (result.ok) navigate(from, { replace: true })
+    else setError(result.error)
   }
 
   return (
@@ -53,7 +43,7 @@ export default function LoginPage() {
         <p className="muted">Authenticate to access your projects.</p>
       </section>
 
-      <form key={shakeKey} className={`card login-card${error ? ' shake' : ''}`} onSubmit={handleSubmit}>
+      <form className="card login-card" onSubmit={handleSubmit}>
         <label htmlFor="token" className="field-label">
           Access token
         </label>

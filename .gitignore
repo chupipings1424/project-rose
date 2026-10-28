@@ -29,5 +29,4 @@ dist-ssr
 
 # personal data - never commit
 *.xlsx
-server/data/
 tasks.json

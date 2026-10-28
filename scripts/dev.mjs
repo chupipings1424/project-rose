@@ -10,7 +10,7 @@
 // ROSE tab closes (or when you press the power button). When the API stops,
 // this script stops Vite and exits too. Set ROSE_AUTO_CLOSE=0 to keep it running.
 import { spawn, spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -60,28 +60,6 @@ function shutdown(code = 0) {
 process.on('SIGINT', () => shutdown(0))
 process.on('SIGTERM', () => shutdown(0))
 
-/**
- * One-time move from the old setup (Flask + Node worker) to the API's data
- * folder. Only copies files the API does not have yet, so it never overwrites.
- */
-function migrateOldData(dataDir) {
-  const candidates = [
-    process.env.PAYMENT_TRACKER_DIR && path.join(process.env.PAYMENT_TRACKER_DIR, 'payments.xlsx'),
-    path.join(root, 'server', 'data', 'reminders.json'),
-    path.join(root, 'server', 'data', 'push-devices.json'),
-    path.join(root, 'server', 'data', 'vapid.json'),
-  ].filter(Boolean)
-
-  mkdirSync(dataDir, { recursive: true })
-  for (const source of candidates) {
-    const target = path.join(dataDir, path.basename(source))
-    if (existsSync(source) && !existsSync(target)) {
-      copyFileSync(source, target)
-      log('api', `copied ${source} -> ${target}`)
-    }
-  }
-}
-
 async function waitForApi(child, seconds) {
   for (let i = 0; i < seconds; i++) {
     if (child.exitCode !== null) return false
@@ -110,8 +88,6 @@ async function startApi() {
     log('api', `${apiProject} and put your token in it.`)
     return
   }
-
-  migrateOldData(path.join(apiDir, 'data'))
 
   log('api', 'building (the first time takes a minute)...')
   // No shell here: the folder path may contain spaces (e.g. OneDrive - Company).

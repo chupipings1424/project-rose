@@ -1,8 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import '@fontsource/cinzel/700.css'
-import '@fontsource/cinzel/900.css'
 import '@fontsource/orbitron/500.css'
 import '@fontsource/orbitron/700.css'
 import '@fontsource/orbitron/900.css'
@@ -14,7 +12,6 @@ import App from './App'
 import { AuthProvider } from './auth/AuthProvider'
 import { ToastProvider } from './components/toast/ToastProvider'
 import { CurrencyProvider } from './currency/CurrencyProvider'
-import { EntranceProvider } from './intro/EntranceProvider'
 import { migrateLegacyStorage } from './lib/migrateStorage'
 import { registerServiceWorker } from './lib/serviceWorker'
 import { ThemeProvider } from './theme/ThemeProvider'
@@ -24,8 +21,8 @@ migrateLegacyStorage()
 // Needed for reminder push notifications (public/sw.js).
 registerServiceWorker()
 
-// Providers wrap the app so any component can reach theme, currency, auth, toasts and the
-// entrance gate through hooks (useTheme, useCurrency, useAuth, useToast, useEntrance).
+// Providers wrap the app so any component can reach theme, currency, auth and toasts
+// through hooks (useTheme, useCurrency, useAuth, useToast).
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
@@ -33,9 +30,7 @@ createRoot(document.getElementById('root')!).render(
         <CurrencyProvider>
           <AuthProvider>
             <ToastProvider>
-              <EntranceProvider>
-                <App />
-              </EntranceProvider>
+              <App />
             </ToastProvider>
           </AuthProvider>
         </CurrencyProvider>

@@ -7,8 +7,10 @@
 export const LEGACY_KEYS: Readonly<Record<string, string | null>> = {
   'febvy.theme': 'rose.theme',
   'febvy.currency': 'rose.currency',
-  'febvy.gate.muted': 'rose.gate.muted',
   'febvy.session': null,
+  // The login animation (and its sound toggle) was removed.
+  'febvy.gate.muted': null,
+  'rose.gate.muted': null,
   // Logins used to be kept in localStorage for 12 hours; now they live in sessionStorage.
   'rose.session': null,
 }

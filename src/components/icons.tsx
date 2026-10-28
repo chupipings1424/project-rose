@@ -1,23 +1,4 @@
 /** Inline SVG icons: they inherit `currentColor`, so they follow the theme. */
-export function SoundIcon({ muted, size = 18 }: { muted: boolean; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M11 5 6 9H2v6h4l5 4z" />
-      {muted ? <path d="m22 9-6 6M16 9l6 6" /> : <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />}
-    </svg>
-  )
-}
-
 export function TrashIcon({ size = 18 }: { size?: number }) {
   return (
     <svg

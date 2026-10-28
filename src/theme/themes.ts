@@ -1,4 +1,4 @@
-export type ThemeGroup = 'futuristic' | 'anime'
+export type ThemeGroup = 'futuristic' | 'retro'
 
 export interface ThemeDefinition {
   id: string
@@ -55,69 +55,21 @@ export const THEMES = [
     swatch: ['#eef2ff', '#7c3aed', '#0891b2'],
   },
   {
-    id: 'hunter',
-    group: 'anime',
-    name: 'Hunter × Hunter',
-    description: "Killua's Godspeed: lightning on night blue",
-    mode: 'dark',
-    swatch: ['#040818', '#3cc8ff', '#eaf4ff'],
-  },
-  {
-    id: 'alchemist',
-    group: 'anime',
-    name: 'Fullmetal Alchemist',
-    description: 'Crimson coat and blue transmutation light',
-    mode: 'dark',
-    swatch: ['#0d0507', '#e3262f', '#3ea6ff'],
-  },
-  {
-    id: 'deathnote',
-    group: 'anime',
-    name: 'Death Note',
-    description: 'Blood-red ink on gothic black',
-    mode: 'dark',
-    swatch: ['#060506', '#b3001b', '#ece4d8'],
-  },
-  {
-    id: 'dragonball',
-    group: 'anime',
-    name: 'Dragon Ball Super',
-    description: 'Super Saiyan gold and ki blue',
-    mode: 'dark',
-    swatch: ['#07081a', '#ff8a1c', '#4aa8ff'],
-  },
-  {
-    id: 'naruto',
-    group: 'anime',
-    name: 'Naruto',
-    description: 'Chakra orange and the Eight Trigrams seal',
-    mode: 'dark',
-    swatch: ['#0d0806', '#ff7a00', '#e8262b'],
-  },
-  {
-    id: 'bleach',
-    group: 'anime',
-    name: 'Bleach',
-    description: 'Final Getsuga: black reiatsu and blood chains',
-    mode: 'dark',
-    swatch: ['#050506', '#d8102e', '#9fb4d1'],
-  },
-  {
-    id: 'geass',
-    group: 'anime',
-    name: 'Code Geass',
-    description: 'The red sigil of Geass on royal purple',
-    mode: 'dark',
-    swatch: ['#08050f', '#e8173a', '#d4af37'],
+    id: 'retro',
+    group: 'retro',
+    name: 'Retro 8-bit',
+    description: 'Handheld-console greens and pixel type',
+    mode: 'light',
+    swatch: ['#9bbc0f', '#306230', '#0f380f'],
   },
 ] as const satisfies readonly ThemeDefinition[]
 
 export const THEME_GROUPS: readonly { id: ThemeGroup; label: string }[] = [
   { id: 'futuristic', label: 'Futuristic' },
-  { id: 'anime', label: 'Anime' },
+  { id: 'retro', label: 'Retro' },
 ]
 
-/** A union of the ids above: 'neon' | 'space' | ... | 'geass' */
+/** A union of the ids above: 'neon' | 'space' | ... | 'retro' */
 export type ThemeId = (typeof THEMES)[number]['id']
 
 export const DEFAULT_THEME: ThemeId = 'neon'

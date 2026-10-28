@@ -108,10 +108,10 @@ you **reuse stateful logic**, not UI.
 ## 5. Context: app-wide state without prop drilling
 
 Context lets any component read a value without passing props through every level.
-ROSE uses five, wired up in `src/main.tsx`:
+ROSE uses four, wired up in `src/main.tsx`:
 
 ```
-<BrowserRouter> → <ThemeProvider> → <CurrencyProvider> → <AuthProvider> → <ToastProvider> → <EntranceProvider> → <App/>
+<BrowserRouter> > <ThemeProvider> > <CurrencyProvider> > <AuthProvider> > <ToastProvider> > <App/>
 ```
 
 Each one is split into three files (a common, lint-friendly pattern):
@@ -135,10 +135,10 @@ so money stays a *number* until render time and can follow the currency.
 `NewTitleDialog.tsx` does the same: it stores the raw schedule preview and
 formats it during render.
 
-`src/intro/` uses context for an *action* rather than a value: `useEntrance()`
-gives `open()` and `deny()`. `LoginPage` calls `entrance.open()` after a correct
-token and `entrance.deny()` after a wrong one. It never needs to know how the gate
-or the sound works. That is the **dependency inversion** idea from SOLID, in React form.
+`src/components/toast/` uses context for an *action* rather than a value: `useToast()`
+gives `notify(message, tone)`. A page just calls `notify('Saved', 'success')`; it never
+needs to know how or where toasts are drawn. That is the **dependency inversion** idea
+from SOLID, in React form.
 
 ---
 
@@ -239,22 +239,16 @@ loads, which avoids a flash of the wrong theme.
 `[data-theme='yourid']` block in `global.css`. TypeScript will tell you if you
 missed a field.
 
-The anime themes (`hunter`, `alchemist`, `deathnote`, `dragonball`, `naruto`, `bleach`, `geass`) show a few more tricks:
+The picker groups themes with a `group` field (`'futuristic' | 'retro'`), and the
+**Retro 8-bit** theme shows two more tricks:
 
-- **Background art in CSS.** `.bg-motif` in `Background.tsx` is an
-  empty `div`. Each theme gives it a different `background-image`: SVG drawn
-  inline as a `data:` URL (Killua's lightning bolts), or plain
-  `repeating-linear-gradient`s (Death Note's ruled notebook lines).
-- **Recolouring a drawing with a mask.** The Fullmetal Alchemist circle is a real
-  drawing, turned into white lines on a transparent background
-  (`src/assets/transmutation-circle.webp`). CSS uses it as a `mask` over a red/blue
-  `conic-gradient`, so the lines take the gradient's colours and you can recolour
-  them without editing the image. The glow (`filter: drop-shadow`) sits on the
-  *parent*, because a mask would also cut away a glow on the same element.
 - **Specificity.** `[data-theme='x']` and `:root` have the *same* specificity, so
-  whichever comes later in the file wins. To override a base variable such as
-  `--font-display`, Death Note uses `html[data-theme='deathnote']`, which is one
-  notch more specific.
+  whichever comes later in the file wins. To override base variables such as
+  `--font-display` and `--radius`, Retro uses `html[data-theme='retro']`, which is one
+  notch more specific. That one block swaps in a monospace font and square corners.
+- **A palette is a design decision.** Retro uses the four greens of an old handheld
+  console for the whole UI, plus a few extra inks (`--c1` ... `--c6`) so the charts
+  stay readable.
 - **Unique SVG ids.** The logo in `Brand.tsx` uses a `<linearGradient id=...>`.
   It appears twice on some pages, and duplicate ids break gradients, so the
   component gets a unique id from React's `useId()`.
@@ -267,61 +261,22 @@ databases too.
 
 ---
 
-### Animation: how the Testing Gate works (`src/intro/`)
+### Static on purpose: cheap on CPU and GPU
 
-| File | Job |
-| --- | --- |
-| `EntranceProvider.tsx` | `open()` shows the gate after a correct login; `deny()` plays the thud. |
-| `GateIntro.tsx` | A tiny **state machine**: phases `arrive → opening → done` (or `leaving` on Skip), driven by timers. |
-| `gateConfig.ts` | Constants: door sizes and the timings shared by the code and the tests. |
-| `GateDoor.tsx` | One door, rendered **recursively** (door 7 contains door 6, ...). |
-| `gate.css` | All visuals: keyframes, transitions, 3D transforms, SVG-filter stone. |
-| `gateSound.ts` | Sounds synthesized with the Web Audio API (no audio files). |
+ROSE used to have looping background animations, per-theme art and a login entrance
+with synthesized sound. They looked great but kept the GPU busy on every frame, even
+while you were only reading a table. Now:
 
-Ideas worth learning:
+- the background (`Background.tsx`: two blurred orbs, a perspective grid, scanlines) is
+  **painted once** and never animates;
+- the only animations left are short, one-off ones that answer an action: a dialog
+  opening, a toast sliding in, the loading spinner;
+- `@media (prefers-reduced-motion: reduce)` turns even those off.
 
-1. **Let CSS animate, let React switch phases.** React only changes `data-phase`
-   on the overlay three times. Every movement (rumble, swinging doors, camera,
-   flash, fade) is a CSS animation keyed off that attribute. That means 3 renders
-   instead of 60 per second.
-2. **3D hinges.** `perspective` on the container, `transform-style: preserve-3d`
-   on every door, and `transform-origin` on the hinge edge. Because smaller doors
-   are *children*, they ride along when a bigger door swings.
-3. **Measure before you optimize.** Two real lessons from this gate:
-   - An earlier hold-to-push version set CSS custom properties on the whole scene
-     every frame: 19 fps. Custom properties are *inherited*, so every element
-     restyled. Setting `style.translate` directly: 59 fps.
-   - Chrome rasterises an animated `scale` at its **largest** value. Zooming to 3.4x
-     meant painting about 11x the pixels on every frame. The white flash hides
-     everything after 80%, so the zoom now peaks at 2.6x. The app behind the opaque
-     gate is also set to `visibility: hidden`, timed with keyframes, so its blurred
-     orbs stop being composited. Together they roughly doubled the frame rate.
-4. **Restart a CSS animation with `key`.** `<div className="gate-dust" key={`dust-${wideOpen}`}>`
-   remounts the element when the doors swing wide, so the falling dust replays.
-5. **Stone without images.** `feTurbulence` (fractal noise) lit by
-   `feDiffuseLighting` inside an SVG data URL gives a realistic rocky relief.
-6. **Be kind:** `prefers-reduced-motion`, a Skip button, Esc, a mute toggle,
-   `inert` on the app behind the overlay, and a portal (`createPortal`) so the
-   overlay is not trapped inside the app's layout.
-7. **Sound needs a click.** Browsers only allow audio after a user gesture. The
-   gate opens straight after the login click, so the `AudioContext` it creates is allowed.
-8. **Testing time.** `vi.useFakeTimers()` lets `GateIntro.test.tsx`
-   fast-forward the whole animation in milliseconds.
-9. **A registry of scenes.** Every theme has its own entrance, but there is still only
-   one `GateIntro`: the *shell* (timers, sound, HUD, Skip). It looks up
-   `SCENES[theme]` in `scenes/index.ts`, typed as `Record<ThemeId, ComponentType<SceneProps>>`,
-   so TypeScript fails the build if a new theme has no scene. Adding a scene means adding
-   one component and one registry line, without touching the shell: the
-   *Open/Closed principle*. `gateSkins.ts` holds the sound profile and the status lines.
-10. **One timeline per scene.** Each scene runs all its keyframes with the same duration,
-   `var(--scene-t)` (set by the shell), and places every event with percentages. So all
-   the parts stay in sync, and changing the length is one number. Big effects (the ink
-   flood, the shockwave, the Geass sigils) are drawn at full size and scaled *up to*
-   1, so the browser never has to rasterize a huge element.
-11. **Animating a custom property.** `@property --sweep { syntax: '<angle>' }` tells the
-   browser `--sweep` is an angle, so it can animate it. The transmutation circle uses it
-   in a `conic-gradient` mask to *draw itself*. SVG strokes use the classic trick
-   `pathLength="1"` plus animating `stroke-dashoffset` from 1 to 0 (the solar flares).
+Rule of thumb: an `animation: ... infinite` costs power for as long as the page is open.
+Use motion to answer something the user did, not as decoration.
+
+---
 
 ## 11. Testing
 
@@ -442,174 +397,48 @@ headers. That blocks a cheap *CSRF* trick where some other page shuts ROSE down.
 `keepPresence()` in `lifetime/system.ts` reconnects after 3 seconds if the stream breaks.
 That is an `async` loop stopped by an `AbortSignal`, the standard way to cancel `fetch`.
 
-## 15. ROSE Lingo: a real database (SQLite + EF Core)
+## 15. Packaging: one ROSE.exe for another laptop
 
-Projects 01-03 keep their data in files (an Excel workbook, JSON). ROSE Lingo (Project 04)
-needs to ask questions like *"which Korean cards are due today?"* across hundreds of rows,
-so it uses a real database: **SQLite**, one file (`project-rose-api/data/lingo.db`) with no
-server to install. The API talks to it through **Entity Framework Core (EF Core)**, .NET's
-ORM: you write C# classes and LINQ, and EF Core writes the SQL.
+`package-rose.cmd` (= `npm run package`, `scripts/package.mjs`) turns the two repos into a
+single **ROSE.exe** that runs on a Windows laptop with nothing installed.
 
-### The pieces
-
-| Piece | File (in project-rose-api) | Job |
+| Step | Where | What happens |
 | --- | --- | --- |
-| Entities | `Rose.Domain/Lingo/Card.cs`, `QuizResult.cs` | Plain C# classes with the rules (no database code) |
-| `DbContext` | `Rose.Infrastructure/Lingo/LingoDbContext.cs` | The database session: `DbSet<Card> Cards`, and the table / index setup |
-| Migrations | `Rose.Infrastructure/Lingo/Migrations/` | Generated C# that creates or changes the tables, one step per change |
-| Migrator | `LingoDatabaseMigrator.cs` | On API start: creates `lingo.db` and applies new migrations |
-| Repository | `EfLingoRepository.cs` (behind `ILingoRepository`) | The only class that writes LINQ queries, so the services stay testable |
-| Design-time factory | `LingoDesignTimeFactory.cs` | Lets the `dotnet ef` tool build the DbContext without starting the API |
+| 1. Build the UI | `npm run build` | Vite writes the static site to `dist/` (HTML, JS, CSS, fonts) |
+| 2. Publish the API | `dotnet publish ... -p:RoseUiDist=<dist>` | `Rose.Api.csproj` sees `RoseUiDist` and switches to *package mode* |
+| 3. Copy | `../ROSE/` | `ROSE.exe`, `appsettings.json`, your token file and your data |
 
-### How to create a SQLite database with EF Core, step by step
+**Package mode** (the `PropertyGroup Condition="'$(RoseUiDist)' != ''"` in `Rose.Api.csproj`):
 
-This is exactly how `lingo.db` was made. Run the commands in the **project-rose-api** folder.
+- `PublishSingleFile` + `SelfContained`: the .NET runtime, ASP.NET Core and every
+  DLL are bundled into one compressed file (about 55 MB). No .NET install needed.
+- `OutputType=WinExe`: no console window.
+- `EmbeddedResource ... Link="wwwroot\..."` with `GenerateEmbeddedFilesManifest`: the
+  React build is stored *inside* the exe. `ManifestEmbeddedFileProvider` serves it like a
+  folder, so `UseStaticFiles` does not know the difference.
+- Normal builds and the tests never set `RoseUiDist`, so none of this affects development.
 
-1. **Add the packages** (versions live in `Directory.Packages.props`):
+**At runtime** (`src/Rose.Api/Desktop/DesktopApp.cs` and `Program.cs`):
 
-   ```powershell
-   dotnet add src/Rose.Infrastructure package Microsoft.EntityFrameworkCore.Sqlite
-   dotnet add src/Rose.Infrastructure package Microsoft.EntityFrameworkCore.Design
-   ```
+1. **Same origin.** The exe serves the API *and* the pages from `http://127.0.0.1:5175`,
+   so the UI's relative `/api/...` calls just work. In development Vite's proxy does the
+   same job, which is why the React code did not change at all.
+2. **SPA fallback.** `/projects/budget` is not a file: it is a React Router route.
+   `MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html")` answers every
+   non-file, non-API address with `index.html`, and React Router takes over in the browser.
+   Unknown `/api/...` addresses still get a real 404.
+3. **Content root.** `ContentRootPath = AppContext.BaseDirectory` makes `appsettings*.json`
+   and `data\` load from the exe's folder, however the exe was started.
+4. **One copy only.** A named `Mutex` (`Local\ProjectROSE`): a second double-click sees it
+   is taken, opens a browser tab and exits.
+5. **Open the browser** once Kestrel is listening (`ApplicationStarted`).
+6. **Close itself.** Package mode always enables the auto-close from section 14.
+7. **Explain crashes.** A WinExe has no console, so a startup error (missing token, port in
+   use) is written to `rose-error.log` and opened in Notepad.
 
-2. **Install the `dotnet ef` tool** for this repo only (a *local tool*, listed in
-   `.config/dotnet-tools.json`, so everyone gets the same version):
-
-   ```powershell
-   dotnet new tool-manifest          # once per repo (already done here)
-   dotnet tool install dotnet-ef --version 9.0.20
-   dotnet tool restore               # on a new PC: installs what the manifest lists
-   ```
-
-3. **Write the entity**: an ordinary class with an `Id`. EF Core can use a private
-   parameterless constructor, so the public constructor can still enforce your rules.
-
-4. **Write the `DbContext`** and describe tables with the **Fluent API** (keeps database
-   details out of the domain classes):
-
-   ```csharp
-   public sealed class LingoDbContext(DbContextOptions<LingoDbContext> options) : DbContext(options)
-   {
-       public DbSet<Card> Cards => Set<Card>();
-
-       protected override void OnModelCreating(ModelBuilder model)
-       {
-           model.Entity<Card>().HasKey(c => c.Id);
-           model.Entity<Card>().HasIndex(c => new { c.Language, c.DueOn }); // fast "due today"
-       }
-   }
-   ```
-
-5. **Register it** in dependency injection with a connection string pointing at the file:
-
-   ```csharp
-   services.AddDbContext<LingoDbContext>(o => o.UseSqlite("Data Source=data/lingo.db"));
-   ```
-
-6. **Create the first migration.** EF Core compares your classes with the last snapshot and
-   generates the C# that creates the tables:
-
-   ```powershell
-   dotnet ef migrations add InitialLingo `
-     --project src/Rose.Infrastructure --startup-project src/Rose.Infrastructure `
-     --context LingoDbContext --output-dir Lingo/Migrations
-   ```
-
-   Open the generated `*_InitialLingo.cs`: `Up()` creates the tables, `Down()` removes them.
-   Commit migrations like any other code.
-
-7. **Create the database file.** Either by hand:
-
-   ```powershell
-   dotnet ef database update --project src/Rose.Infrastructure --context LingoDbContext
-   ```
-
-   or, like ROSE, automatically when the API starts: `LingoDatabaseMigrator` calls
-   `db.Database.MigrateAsync()`. If `lingo.db` is missing it is created; if there are new
-   migrations they are applied. Nothing to remember.
-
-8. **Change the model later** (say, add `Card.Example`): edit the class, run
-   `dotnet ef migrations add AddCardExample ...` (same options as step 6), restart the API.
-   Your existing cards are kept; only the new column is added.
-
-   A real example: v2 replaced the daily quiz with on-demand quizzes. `QuizResult` got a
-   `Mode` (`random` / `custom`) and lost its "one quiz per language per day" unique index.
-   `dotnet ef migrations add OnDemandQuiz ...` generated `*_OnDemandQuiz.cs`; its `Up()` also
-   deletes the old daily-quiz rows (`migrationBuilder.Sql(...)`), because a migration can
-   move or clean data as well as change tables.
-
-### Look inside the database
-
-`lingo.db` is a normal file. Open it with **DB Browser for SQLite** (free, sqlitebrowser.org)
-or the **SQLite Viewer** extension in VS Code, and you can browse the `Cards` and
-`QuizResults` tables or run SQL such as
-`SELECT Term, DueOn FROM Cards WHERE Language = 'ja' ORDER BY DueOn;`.
-Close ROSE first if you want to edit rows by hand. (`lingo.db-wal` / `-shm` next to it are
-SQLite's write-ahead log; leave them alone.) Back it up by copying `lingo.db` while ROSE is closed.
-
-### Things that tripped me up (and the fixes)
-
-- **"The model has pending changes".** The unit test `LingoDbContextTests` calls
-  `db.Database.HasPendingModelChanges()`, so forgetting step 8 fails the build, not production.
-- **SQLite has no `DateTimeOffset` type.** EF Core stores it as text and cannot `ORDER BY`
-  it in SQL, so `LingoService` sorts those in memory. `DateOnly` (e.g. `DueOn`) works fine in SQL.
-- **Case-insensitive duplicates.** "Wasser" and "wasser" should be the same card:
-  `EF.Functions.Collate(c.Term, "NOCASE") == term` asks SQLite to compare without case.
-- **The analyzers complained about generated code.** `.editorconfig` marks
-  `**/Migrations/*.cs` as `generated_code = true`.
-- **Tests use the real SQLite engine**, not EF Core's in-memory fake: unit tests use an
-  in-memory SQLite connection, integration tests a `lingo.db` in a temp folder. So they also
-  prove the migrations really work against the same engine as production.
-
-### On the React side
-
-- **Spaced repetition** lives in the API (`Rose.Domain/Lingo/Srs.cs`, based on Anki's SM-2):
-  *Again / Hard / Good / Easy* decides when you see a card next. The page only shows cards and
-  sends the grade.
-- **`key` resets a component.** `<ReviewSession key={ids}>` and `<Drill key={script + '-' + level}>`
-  start fresh when their input changes, without a `useEffect` that copies props into state.
-- **Keyboard shortcuts** (Space to reveal, 1-4 to grade) are one `keydown` listener added in
-  `useEffect` and removed in its cleanup.
-- **Text-to-speech** is the browser's free `speechSynthesis` (`lingo/lib/speech.ts`).
-  `pickVoice` tries the exact tag (`zh-TW`), then any voice of the same language (`zh-*`).
-  Missing a voice? Windows Settings > Time & language > Speech > *Add voices*.
-- **One page, many states.** `QuizPage` is a tiny state machine: `start` (Take / Make /
-  history) → `run` → `done`.
-- **Show the fix, not just the error.** `TranslatePage` asks `GET /api/lingo/translator`
-  first; when the model is missing it shows the install steps instead of a failing button.
-- **`lang` attributes** (`<span lang="ja">`) make the browser pick the right font for kana,
-  hangul and kanji.
-
-### An offline translator in .NET (NLLB-200 + ONNX Runtime)
-
-ROSE Lingo translates without the internet. The model is **NLLB-200 distilled 600M**
-("No Language Left Behind", by Meta), exported to **ONNX**, a portable file format for
-neural networks, and run by **Microsoft.ML.OnnxRuntime** inside the API.
-
-| Piece | File (in project-rose-api) | Job |
-| --- | --- | --- |
-| Downloader | `setup-lingo.cmd` / `setup-lingo.ps1` | Fetches the model files once into `data/models/nllb-200-distilled-600M` (resumable, skips what exists) |
-| Model files | `NllbModelFiles.cs` | Finds the files; "not installed" becomes a friendly 503 |
-| Tokenizer | `NllbVocabulary.cs` | Text → numbers with the SentencePiece model (`Microsoft.ML.Tokenizers`) and back |
-| Model | `OnnxTranslationModel.cs` | Runs the encoder once, then the decoder one token at a time |
-| Decoding | `GreedyDecoder.cs` | Picks the most likely next token until end-of-sentence. Pure C#, unit tested with a fake model |
-| Translator | `NllbTranslator.cs` | Splits text into sentences, loads the model on first use, one translation at a time (`SemaphoreSlim`), unloads it after 2 idle minutes |
-
-How a translation runs: `"Salamat po"` → tokens `[tgl_Latn, ▁Sal, amat, ▁po, </s>]` → the
-encoder turns them into vectors → the decoder starts with `[</s>, eng_Latn]` (the language
-code tells it to write English) and adds the best next token until `</s>` → `"Thank you"`.
-
-Things worth knowing:
-
-- **Tests do not need the 1 GB model.** `ITranslator` is an interface; integration tests use a
-  fake, and the decoder is tested with a scripted `ITranslationModel`.
-- **Memory on a budget.** The model only lives in memory while you use it (load on demand,
-  unload when idle). `OnnxTranslationModel.Load` also turns off ONNX Runtime's memory arena
-  and memory patterns, which would otherwise keep freed memory for later, and caps the CPU
-  threads (`Lingo:Threads`).
-- **Readings are separate.** Romaji, Hangul romanization and pinyin come from small
-  rule-based romanizers in `Rose.Domain/Lingo` (pinyin data from *pypinyin*, MIT).
-- **Licence.** NLLB-200 is **CC-BY-NC 4.0**: fine for a personal project, not for selling.
+Try it: `npm run package`, then run `..\ROSE\ROSE.exe --Desktop:OpenBrowser=false
+--Urls=http://127.0.0.1:5199` and open that address yourself. Any setting can be
+overridden on the command line like this.
 
 ---
 
@@ -617,7 +446,7 @@ Things worth knowing:
 
 1. Change the hub greeting text in `ProjectsHubPage.tsx`.
 2. Add a "Show token" eye toggle to the login field (`useState<boolean>`).
-3. Add another theme with its own entrance scene (see section 10).
+3. Add a second Retro theme, e.g. amber-on-black terminal (see section 10).
 4. Write a test for `formatCompactMoney` edge cases (negative numbers, zero).
 5. Add a search box to `PaymentsTable` using `useDebouncedValue`.
 6. Build a tiny "Notes" project that stores notes in `localStorage` and plug it
@@ -627,7 +456,5 @@ Things worth knowing:
 8. Add a "yearly" repeat rule: first in the API's reminder rules (write the xUnit tests
    first), then in `REPEAT_RULES` / `describeRepeat` in `reminders/model.ts` and the form
    (section 14).
-9. ROSE Lingo: add an `Example` sentence to cards. New property, a migration
-   (section 15, step 8), the API contract and the card form.
-10. Add a "Hardest cards" list (most `Lapses`) to the Cards page: a new repository query,
-    an endpoint, and a `useAsync` call.
+9. Give ROSE.exe an icon: add an `.ico` and `<ApplicationIcon>` to the package-mode
+   `PropertyGroup` in `Rose.Api.csproj` (section 15).

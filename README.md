@@ -4,22 +4,25 @@ A personal, futuristic **project hub** built with **React 19 + TypeScript + Vite
 This repo is the **UI only**. All data and background work live in the **ROSE API**, a
 .NET 9 backend with Swagger in its own repo:
 [project-rose-api](https://github.com/chupipings1424/project-rose-api).
-Log in with an access token, pick a theme, walk through the gate, and launch your projects:
+Log in with an access token, pick a theme and launch your projects:
 
 | # | Project | What it shows off |
 | --- | --- | --- |
 | 01 | **Payment Tracker** | A React rebuild of a Flask + Excel app: loans, instalments, payment report, import/export |
 | 02 | **Personal Budget** | Revenue and expense lines, net per month, a budget report. Same Excel workbook as 01 |
 | 03 | **Reminders** | Repeat rules, a Windows always-on-top alarm popup and **Web Push** notifications (iPhone too) |
-| 04 | **ROSE Lingo** | Offline translator (Tagalog, English, Japanese, Korean, Chinese, German), flashcards with spaced repetition, quizzes, kana and Hangul drills. **SQLite + EF Core + ONNX Runtime** |
+
 
 **Tech:** React 19, TypeScript (strict), Vite, React Router, Recharts, Vitest + Testing
 Library, oxlint, Service Workers, PWA manifest. Backend: ASP.NET Core 9, Swagger, JWT, xUnit
 (see project-rose-api).
 
-Personal data stays on the PC: payments live in a local Excel workbook, reminders in a local
-JSON file and Lingo cards in a local SQLite database, all in the API's git-ignored `data/`
-folder. Even the Lingo translator runs offline, on this PC.
+Personal data stays on the PC: payments and the budget live in a local Excel workbook and
+reminders in a local JSON file, both in the API's git-ignored `data/` folder (or next to
+`ROSE.exe`, see below).
+
+Want ROSE on another laptop? **[ROSE.exe](#roseexe-one-file-for-another-laptop)** is one
+file with nothing to install.
 
 > New to React or TypeScript? Read **[LEARNING.md](LEARNING.md)**. It walks
 > through this codebase concept by concept.
@@ -44,7 +47,6 @@ One-time setup:
 Then:
 
 ```powershell
-# double-click start.cmd, or:
 npm install      # first time only
 npm start        # ROSE API + ROSE UI
 ```
@@ -58,8 +60,7 @@ The API documentation (Swagger UI) is at <http://127.0.0.1:5175/swagger>.
 `npm start` runs `scripts/dev.mjs`, which:
 
 1. checks whether the ROSE API already answers at `ROSE_API_URL/health`
-2. if not: copies old data the API does not have yet (see below), runs `dotnet build`
-   and starts the API
+2. if not: runs `dotnet build` and starts the API
 3. waits until the API is healthy, then starts Vite and opens the browser
    (set `ROSE_NO_OPEN=1` to skip)
 
@@ -76,24 +77,43 @@ You never have to hunt for the terminal window:
 - Or click the small **power button (⏻)** in the bottom-left corner of any page and confirm.
 
 Your login lives in `sessionStorage`, so it is forgotten when the browser closes: next time
-you go through the token page and the gate again.
+you enter the token again.
 
 While ROSE is closed, reminders do not ring and phone push does not arrive. They ring as soon
 as you start it again. To keep ROSE running in the background, set `ROSE_AUTO_CLOSE=0`.
 Then the power button is hidden and closing the browser leaves everything running.
 
-### Moving from the old Flask + Node setup
+## ROSE.exe: one file for another laptop
 
-The first `npm start` copies these into `project-rose-api\data\`. It only copies files
-that are **missing** there, so it never overwrites anything:
+`package-rose.cmd` (or `npm run package`) builds **ROSE.exe**: one self-contained file with
+the ROSE API *and* this UI inside. The other laptop needs **nothing installed**: no .NET,
+no Node.
 
-| From | To |
-| --- | --- |
-| `PAYMENT_TRACKER_DIR\payments.xlsx` | `data\payments.xlsx` |
-| `server\data\reminders.json`, `push-devices.json`, `vapid.json` | `data\` (same names) |
+```
+ROSE\                      made next to the two repos (ROSE_PACKAGE_DIR changes it)
+  ROSE.exe                 double-click: starts ROSE and opens it in your browser
+  appsettings.json         settings (port, reminder timings)
+  appsettings.Local.json   your access token (copied from the API repo - keep it private)
+  data\payments.xlsx       payments and budget
+  data\reminders.json      reminders
+```
 
-`vapid.json` is the push key pair; keeping it means your iPhone stays subscribed. The Flask
-app is no longer needed. Once everything works, `server\data\` can be deleted.
+1. On this PC (it needs Node and the .NET 9 SDK), double-click **`package-rose.cmd`**.
+2. Copy the whole `ROSE` folder to the other laptop (USB stick, OneDrive...).
+3. Double-click **`ROSE.exe`**. No window appears; your browser opens at <http://127.0.0.1:5175>.
+
+- Close the last ROSE tab (or use the power button) and ROSE.exe stops 20 s later.
+  Double-clicking it while it runs just opens another tab.
+- Running `package-rose.cmd` again updates `ROSE.exe` and `appsettings.json` but never
+  overwrites the data or token already in the folder.
+- If ROSE cannot start (no token, port 5175 taken...), the reason is written to
+  `rose-error.log` next to the exe and opened in Notepad.
+- The session key and push keys are created per laptop on first start, so turn phone
+  notifications on again there.
+- Windows SmartScreen may warn the first time because the exe is not signed:
+  *More info > Run anyway*.
+
+How it works: [LEARNING.md, section 15](LEARNING.md#15-packaging-one-roseexe-for-another-laptop).
 
 ## Configuration (`.env`)
 
@@ -103,7 +123,7 @@ Copy `.env.example` to `.env` and edit it. `.env` is git-ignored.
 | --- | --- |
 | `ROSE_API_URL` | Where the API answers (default `http://127.0.0.1:5175`). Vite forwards `/api/*` there. |
 | `ROSE_API_DIR` | Where project-rose-api is cloned (default `../project-rose-api`). |
-| `PAYMENT_TRACKER_DIR` | Only used once, to copy `payments.xlsx` into the API. |
+| `ROSE_PACKAGE_DIR` | Where `npm run package` puts ROSE.exe (default `../ROSE`). |
 | `ROSE_NO_OPEN` | `1` = do not open the browser. |
 | `ROSE_AUTO_CLOSE` | `0` = keep running when the last tab closes (default: close after 20 s). |
 
@@ -114,57 +134,20 @@ The access token, session length, reminder and push settings live in the API: se
 > that the browser sends as `Authorization: Bearer ...` on every request. Nothing secret is in
 > the JavaScript bundle. See *Authentication* in LEARNING.md.
 
-## The entrance: the Testing Gate
-
-A **correct token** opens a giant stone gate (inspired by the Zoldyck
-*Testing Gate* from Hunter x Hunter, drawn from scratch in CSS): it lands with a
-thud, the seven engraved door numbers light up, the doors swing wide, the camera
-flies through and you arrive at your projects.
-
-- A **wrong token** gets a heavy thud, the login card shakes and glows red, and an
-  error message appears. The gate stays shut.
-- **Esc** or **Skip** jumps straight in. The speaker button mutes the synthesized
-  sound (remembered in your browser).
-- It only plays when you log in, not when you refresh while already logged in.
-- It is skipped automatically if your OS asks for *reduced motion*. While
-  developing, add `?nogate` to the URL to skip it.
-
-**Every theme has its own entrance scene** (about 2.75 s) and its own synthesized sound:
-
-| Theme | Entrance | Sound |
-| --- | --- | --- |
-| Neon Cyberpunk | a flickering neon "ROSE" sign over a synthwave city glitches and tears open | synth bass and zaps |
-| Deep Space | a ringed planet zips past and you jump to warp speed | hydraulic hiss and hum |
-| Matrix | code rain; you dive in while "ROSE" decrypts letter by letter | digital bleeps |
-| Solar Flare | the sun rises over the dunes, flares erupt, a shockwave hits | deep gong |
-| Hologram | a projector prints "ROSE" in light, then the glass shatters | crystal chimes and a shatter |
-| Hunter x Hunter | the original stone Testing Gate in a forest | stone thud and rumble |
-| Fullmetal Alchemist | the **Gate of Truth**: the circle draws itself, the eye opens, the black hands reach out | heartbeat and choir |
-| Death Note | the notebook opens, the pen writes "ROSE" and ink floods the screen | page flip, pen scratches, bell |
-| Dragon Ball Super | the 4-star ball charges, the aura flares, Kamehameha! | rising ki charge and blast |
-| Naruto | the Sharingan opens, spins into the Mangekyō and casts a genjutsu | spinning whoosh and pulse |
-| Bleach | the Senkaimon opens, hell butterflies, blood chains, Getsuga Tenshō | dark slash |
-| Code Geass | the eye activates and the Geass sigil flies at you over a chessboard | choir and command |
-
-`GateIntro.tsx` is only the shell (timers, sound, HUD, Skip). It looks up the scene for the
-theme in `src/intro/scenes/index.ts`. The sound and status lines are in `src/intro/gateSkins.ts`.
-
 ## Themes
 
 Pick a theme on the login page or from the top bar. It is saved in your browser.
-
-The picker is split into two groups: **Futuristic** and **Anime**.
+Backgrounds are **static** (no looping animation, no sound), so ROSE stays light on CPU
+and GPU.
 
 | Group | Theme | Look |
 | --- | --- | --- |
-| Futuristic | Neon Cyberpunk, Deep Space, Matrix, Solar Flare, Hologram | the original futuristic themes |
-| Anime | **Hunter x Hunter** | Killua: blue-white lightning bolts that flicker in the background |
-| Anime | **Fullmetal Alchemist** | crimson and steel blue with a slowly turning, glowing red/blue transmutation circle |
-| Anime | **Death Note** | blood red on black, notebook lines, ink drips and a gothic serif font |
-| Anime | **Dragon Ball Super** | orange and blue with a glowing 4-star Dragon Ball |
-| Anime | **Naruto** | orange and black with the Eight Trigrams seal |
-| Anime | **Bleach** | black and red: Ichigo's final form, blood chains and black reiatsu |
-| Anime | **Code Geass** | violet and gold with the glowing Geass eye |
+| Futuristic | Neon Cyberpunk | magenta and cyan on midnight violet |
+| Futuristic | Deep Space | nebula blues and starlight |
+| Futuristic | Matrix | phosphor-green terminal glow |
+| Futuristic | Solar Flare | molten amber and plasma red |
+| Futuristic | Hologram | bright iridescent glass (light) |
+| Retro | Retro 8-bit | handheld-console greens, monospace type and square corners (light) |
 
 ## Currency
 
@@ -207,45 +190,12 @@ The scheduler is a .NET `BackgroundService` inside the API. Everything runs on t
 the API listens on `127.0.0.1`. ROSE must be running (see *Closing ROSE*). Reminders that
 fall due while it is closed ring as soon as it starts again.
 
-## ROSE Lingo (Project 04)
-
-A translator and language-learning tool for **Tagalog, English, Japanese, Korean, Chinese
-(Simplified and Traditional) and German**. It works **fully offline**.
-
-| Tab | What it does |
-| --- | --- |
-| **Translate** | The main screen. Pick *From* and *To* (default **Tagalog → English**) and translate up to 500 characters. Japanese, Korean and Chinese show a **reading** (romaji / romanization / pinyin). **Save as card** is optional |
-| **Flashcards** | Your deck for the *Learning* language: add, search, edit, delete, **Add starter deck** (Tagalog, Japanese, Korean, Chinese, German). **Review** shows the cards that are due: reveal (Space), then grade *Again / Hard / Good / Easy* (keys 1-4). Spaced repetition (SM-2, like Anki) decides when you see each card again |
-| **Quiz** | Only when you want one. **Take a quiz**: 5, 10 or 20 random questions. **Make a quiz**: tick the cards to be tested on. Needs at least 4 cards. Scores are kept under *Recent quizzes*; missed words come back in today's reviews |
-| **Alphabet** | Hiragana, katakana and **Hangul**: a drill (basic or all) and a clickable chart that reads each letter aloud |
-
-The *Learning* picker (top right, remembered) appears on Flashcards and Quiz only.
-🔊 buttons use the browser's built-in voices. If a language is silent, add its voice in
-Windows Settings > Time & language > Speech.
-
-Cards and quiz results live in `project-rose-api/data/lingo.db`, a **SQLite** database the API
-creates on first start. How it was built, and how to make your own, is in
-[LEARNING.md, section 15](LEARNING.md#15-rose-lingo-a-real-database-sqlite--ef-core).
-
-### Installing the offline translator (once per PC)
-
-The translator is **NLLB-200** (Meta's open translation model, distilled 600M, quantized, under 1 GB)
-running inside the API with **ONNX Runtime**. It is not in git; download it once:
-
-1. On a PC **with normal internet** (company networks may block Hugging Face), run
-   `project-rose-api\setup-lingo.cmd`. It downloads into
-   `project-rose-api\data\models\nllb-200-distilled-600M` and can resume if interrupted.
-2. For a laptop **without internet**, copy that `data\models` folder to the same place
-   in its `project-rose-api`.
-3. Restart ROSE. The first translation takes a few seconds while the model loads.
-
-Until then Translate shows these steps; flashcards, quizzes and the alphabet still work.
-The NLLB model is licensed **CC-BY-NC 4.0** (personal, non-commercial use only).
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
 | `npm start` | ROSE API + Vite dev server (recommended) |
+| `npm run package` | Build ROSE.exe (see above); same as `package-rose.cmd` |
 | `npm run dev` | Vite only (start the API yourself, see the project-rose-api README) |
 | `npm test` / `npm run test:watch` | Vitest + React Testing Library |
 | `npm run lint` | oxlint |
@@ -257,12 +207,11 @@ The NLLB model is licensed **CC-BY-NC 4.0** (personal, non-commercial use only).
 ```
 src/
   main.tsx              entry point: storage migration + providers
-                        (Router > Theme > Currency > Auth > Toast > Entrance)
+                        (Router > Theme > Currency > Auth > Toast)
   App.tsx               routes (login, protected shell, lazy projects)
   api/http.ts           apiFetch: adds the session token, friendly errors, 401 = log out
   auth/                 login against the API, sessionStorage session, AuthProvider, ProtectedRoute
-  theme/                12 themes (5 futuristic + 7 anime), ThemeProvider, ThemePicker
-  intro/                the login entrance (GateIntro shell, scenes/ per theme, gateSkins, Web Audio sounds)
+  theme/                6 themes (5 futuristic + 1 retro), ThemeProvider, ThemePicker
   lifetime/             PowerControl: presence connection, power button, auto-close
   currency/             display currency (₱ PHP default, $ USD, A$ AUD, € EUR)
   components/           shared UI: AppShell, Modal, toasts, stat tiles, states
@@ -277,12 +226,12 @@ src/
     payment-tracker/    Payments + Report pages and their components
     budget/             Budget + Report pages and their components
     reminders/          Reminders page, form, model.ts (types), push opt-in (lib/push.ts)
-    lingo/              ROSE Lingo: Translate, Flashcards, Review, Quiz, Alphabet pages; speech + drill helpers
   styles/global.css     design system + theme CSS variables
 public/
   sw.js                 service worker: shows push notifications
   manifest.webmanifest  PWA manifest (name, icons, standalone)
 scripts/dev.mjs         one-command launcher (API + UI)
+scripts/package.mjs     builds ROSE.exe (package-rose.cmd)
 ```
 
 ## Adding a project
