@@ -348,8 +348,9 @@ restart `npm start`. To log every device out, delete `data/session-signing.key` 
 ## 14. Reminders: a background service, Web Push and service workers
 
 Project 03 needs code that runs **when no page is open**: something has to watch the clock
-and ring. That lives in the API as a .NET `BackgroundService` (`ReminderWorker`) that ticks
-every 15 seconds. The rules (repeat, snooze, "the 31st rings on the last day of short
+and ring. That lives in the API as a .NET `BackgroundService` (`SchedulerWorker`) that ticks
+every 15 seconds and runs every registered `IScheduledJob` (the reminder ringer, and since
+Project 05 the habit nudger too, see section 17). The rules (repeat, snooze, "the 31st rings on the last day of short
 months") are pure functions that take the time as an argument, so the API's tests can ask
 "what rings at 09:00 on 31 January?" without waiting or mocking clocks.
 
@@ -442,6 +443,90 @@ overridden on the command line like this.
 
 ---
 
+## 16. Savings Goals: derived state with `useMemo` and a hand-drawn SVG chart
+
+Files: `src/projects/savings/` (UI), `Rose.Domain/Savings/SavingsRules.cs` (API).
+
+**Store the facts, derive the rest.** A goal stores only its target, deadline and list of
+entries. "Saved", "per month", "estimated finish" and the status are *computed* from those
+by the API every time. Nothing can drift out of sync because nothing is stored twice.
+
+The page does the same on its side. `SavingsApp.tsx` keeps the goal list in state and
+derives the header numbers and the active/reached split:
+
+```tsx
+const summary = useMemo(() => summarize(data ?? []), [data])
+const active  = useMemo(() => (data ?? []).filter((g) => g.status !== 'done'), [data])
+```
+
+`useMemo` re-runs the function only when `data` changes, not on every render (for example
+while you type in a form). `summarize()` lives in `lib/summary.ts` as a **pure function**, so
+the test calls it directly without rendering anything. Do not reach for `useMemo` by default:
+use it when the work is not trivial or when a stable object/array matters to a child.
+
+**Immutable updates.** After saving an entry the API returns the whole updated goal, and
+`replace()` swaps it in with `data.map((g) => (g.id === changed.id ? changed : g))`. A
+*new* array is what tells React something changed; mutating `g.saved = ...` would not.
+
+**SVG without a library.** `SavingsChart.tsx` draws the running total as a step line.
+`lib/chart.ts` turns points into coordinates (`chartGeometry`): scale x by time and y by
+amount, flip y because SVG's y grows downwards, then build a `d="M0,80 L40,80 L40,50 ..."`
+path (`M` = move to, `L` = line to). Each deposit adds two points (same x, old then new
+balance), which draws the "balance jumps on deposit" steps. It is plain maths, so it can be
+tested without a browser.
+
+**Testing a `<dialog>`.** jsdom (the fake browser in Vitest) has no `showModal()`, so the
+test adds a tiny polyfill in `beforeEach` (see `SavingsApp.test.tsx`). Without it the
+dialog stays closed and Testing Library cannot type into it.
+
+## 17. Habit Tracker: `useReducer`, optimistic updates and a CSS-grid heatmap
+
+Files: `src/projects/habits/` (UI), `Rose.Domain/Habits/HabitRules.cs`,
+`Rose.Application/Habits/` (API).
+
+**Optimistic update = show it first, confirm later.** Ticking a day should feel instant, so
+the page updates the screen *before* the API answers, and undoes it if the API says no:
+
+```ts
+dispatch({ type: 'dayChanged', id, date, value })          // screen updates now
+try {
+  dispatch({ type: 'dayConfirmed', habit: await habitsApi.setDay(id, date, value) })
+} catch (error) {
+  dispatch({ type: 'dayFailed', id, date, previous })      // roll back + toast
+}
+```
+
+**Why `useReducer` here and `useState` elsewhere?** With several actions touching the same
+list (load, add, edit, delete, tick, confirm, roll back) a reducer keeps every state change
+in one pure function, `lib/reducer.ts`. Pure means: same state + same action = same result,
+no fetch, no `Date.now()`. So `reducer.test.ts` checks each transition with plain objects.
+The reducer also counts pending ticks per habit, so a slow answer for an *earlier* tick
+cannot overwrite a newer one on screen.
+
+**The heatmap is just CSS grid.** `lib/days.ts` builds 12 Monday-first weeks of dates and
+`intensity()` maps each day to a level 0-4. `Heatmap.tsx` renders one `<span>` per day in a
+grid with `grid-auto-flow: column` and 7 rows, so the days fill top-to-bottom, then the next
+week. The colour comes from a `lvl-0` ... `lvl-4` class that mixes the theme's accent
+colour, so every theme keeps working. `memo()` skips re-rendering a card's heatmap when its
+props did not change.
+
+**Rules live in the API.** Streaks, "today and the 6 days before only", and "a count habit
+is done when it reaches its target" are in `HabitRules.cs` and covered by xUnit tests. The UI
+disables locked days for convenience, but the API still refuses them: never trust the client.
+
+**One scheduler, many jobs (Open/Closed principle).** Reminders already had a background
+worker. Instead of adding a second one, it became a generic `SchedulerWorker` that runs
+every `IScheduledJob` registered in DI. `HabitNudger` is just one more job:
+
+```csharp
+services.AddSingleton<IScheduledJob>(sp => sp.GetRequiredService<HabitNudger>());
+```
+
+The desktop popup was generalised the same way (`DesktopAlarmRequest` carries the title,
+header and callback URL), so the Windows alarm window serves both reminders and habits.
+
+---
+
 ## Exercises (easy → harder)
 
 1. Change the hub greeting text in `ProjectsHubPage.tsx`.
@@ -458,3 +543,7 @@ overridden on the command line like this.
    (section 14).
 9. Give ROSE.exe an icon: add an `.ico` and `<ApplicationIcon>` to the package-mode
    `PropertyGroup` in `Rose.Api.csproj` (section 15).
+10. Savings: add a "Pause" flag to a goal so it is left out of the *Behind* count
+    (API rule + test first, then the card; section 16).
+11. Habits: show "Skipped" days (e.g. sick days) that do not break a streak. Start with a
+    failing test in `HabitRulesTests.cs`, then extend the reducer (section 17).

@@ -33,27 +33,6 @@
   border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
 
-.day-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-.chip {
-  font: inherit;
-  font-size: 0.85rem;
-  padding: 0.35rem 0.8rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.chip.is-on {
-  color: var(--on-accent);
-  background: var(--accent);
-  border-color: var(--accent);
-}
 
 .rem-list {
   list-style: none;

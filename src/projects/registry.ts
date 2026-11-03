@@ -1,4 +1,6 @@
 import { BUDGET_BASE } from './budget/paths'
+import { habitsApi } from './habits/api/client'
+import { HABITS_BASE } from './habits/paths'
 import { TRACKER_BASE } from './payment-tracker/paths'
 import { remindersApi } from './reminders/api/client'
 import { friendlyTime } from './reminders/lib/time'
@@ -104,6 +106,23 @@ export const PROJECTS: ProjectInfo[] = [
         { label: 'Saved', amount: summary.totalSaved },
         { label: 'Goals', value: String(summary.active) },
         { label: 'Reached', value: String(summary.reached) },
+      ]
+    },
+  },
+  {
+    id: 'habits',
+    name: 'Habit Tracker',
+    tagline: 'Streaks · Heatmap · Nudges',
+    description:
+      'Tick off daily habits or count towards a target, keep streaks alive and get nudged when one is still open.',
+    path: HABITS_BASE,
+    icon: '◎',
+    loadStats: async () => {
+      const habits = await habitsApi.list()
+      return [
+        { label: 'Done today', value: `${habits.filter((h) => h.doneToday).length} / ${habits.length}` },
+        { label: 'Top streak', value: `${Math.max(0, ...habits.map((h) => h.currentStreak))} days` },
+        { label: 'Habits', value: String(habits.length) },
       ]
     },
   },

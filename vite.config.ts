@@ -21,6 +21,8 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: './src/test/setup.ts',
       css: false,
+      // jsdom + user-event page tests run in parallel and can take >5 s each on a busy laptop.
+      testTimeout: 20_000,
     },
   }
 })

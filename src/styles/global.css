@@ -735,6 +735,35 @@ label.checkbox {
   box-shadow: 0 0 16px color-mix(in srgb, var(--danger) 45%, transparent);
 }
 
+/* Toggle chips (weekday pickers, deposit / withdraw, check / count). Global because
+   several lazily loaded projects use them; scoped to .day-chips so the workbook's
+   read-only .chip labels keep their own look. */
+.day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.day-chips .chip {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.day-chips .chip.is-on {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.day-chips .chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ---------- tables ---------- */
 .table-wrap {
   overflow-x: auto;

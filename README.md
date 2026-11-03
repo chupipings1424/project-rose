@@ -11,15 +11,17 @@ Log in with an access token, pick a theme and launch your projects:
 | 01 | **Payment Tracker** | A React rebuild of a Flask + Excel app: loans, instalments, payment report, import/export |
 | 02 | **Personal Budget** | Revenue and expense lines, net per month, a budget report. Same Excel workbook as 01 |
 | 03 | **Reminders** | Repeat rules, a Windows always-on-top alarm popup and **Web Push** notifications (iPhone too) |
+| 04 | **Savings Goals** | Goals with deposits/withdrawals, the amount needed per month, a pace forecast and an SVG chart |
+| 05 | **Habit Tracker** | Check or count habits, streaks, a 12-week heatmap, optimistic ticks (`useReducer`) and daily nudges |
 
 
 **Tech:** React 19, TypeScript (strict), Vite, React Router, Recharts, Vitest + Testing
 Library, oxlint, Service Workers, PWA manifest. Backend: ASP.NET Core 9, Swagger, JWT, xUnit
 (see project-rose-api).
 
-Personal data stays on the PC: payments and the budget live in a local Excel workbook and
-reminders in a local JSON file, both in the API's git-ignored `data/` folder (or next to
-`ROSE.exe`, see below).
+Personal data stays on the PC: payments and the budget live in a local Excel workbook;
+reminders, savings goals and habits in local JSON files. All of them are in the API's
+git-ignored `data/` folder (or next to `ROSE.exe`, see below).
 
 Want ROSE on another laptop? **[ROSE.exe](#roseexe-one-file-for-another-laptop)** is one
 file with nothing to install.
@@ -96,6 +98,8 @@ ROSE\                      made next to the two repos (ROSE_PACKAGE_DIR changes 
   appsettings.Local.json   your access token (copied from the API repo - keep it private)
   data\payments.xlsx       payments and budget
   data\reminders.json      reminders
+  data\goals.json          savings goals (created on first use)
+  data\habits.json         habits (created on first use)
 ```
 
 1. On this PC (it needs Node and the .NET 9 SDK), double-click **`package-rose.cmd`**.
@@ -190,6 +194,37 @@ The scheduler is a .NET `BackgroundService` inside the API. Everything runs on t
 the API listens on `127.0.0.1`. ROSE must be running (see *Closing ROSE*). Reminders that
 fall due while it is closed ring as soon as it starts again.
 
+## Savings Goals (Project 04)
+
+Create a goal (name, target, optional deadline and icon), then log **deposits** and
+**withdrawals** as you save. Each card shows:
+
+- saved / target with a progress bar, and what is left;
+- **what to save each month** to make the deadline;
+- the **estimated finish date** at your pace over the last 90 days;
+- a status: *On track*, *Behind*, *Past deadline*, *No deadline* or *Reached*.
+
+*History* opens a step chart (hand-drawn SVG, no chart library) and every entry, which you can
+delete. A withdrawal can never take more than is saved. Amounts follow the global currency
+picker. The maths lives in the API (`SavingsRules.cs`); data goes to `data\goals.json`.
+
+## Habit Tracker (Project 05)
+
+Two kinds of habit:
+
+- **Done / not done**, e.g. *Read 20 minutes*: tap a day to tick it.
+- **Count towards a target**, e.g. *8 glasses of water*: pick a day, then use **-** / **+** or *Fill*.
+
+You can change **today and the 6 days before it**; older days are locked. Each card shows the
+current **streak** (a streak survives until today is over), the best streak and a **12-week
+heatmap**. Ticks appear instantly and are rolled back if the API refuses (optimistic updates
+with `useReducer`).
+
+Give a habit a **nudge time** and, if it is still not done at that time, ROSE shows the same
+always-on-top popup as Reminders (*Mark as done*, *Snooze*, *Dismiss*) and a push
+notification on phones that turned notifications on in Reminders. One nudge per day at
+most. Data goes to `data\habits.json`.
+
 ## Scripts
 
 | Command | What it does |
@@ -226,6 +261,8 @@ src/
     payment-tracker/    Payments + Report pages and their components
     budget/             Budget + Report pages and their components
     reminders/          Reminders page, form, model.ts (types), push opt-in (lib/push.ts)
+    savings/            Savings Goals page, goal/entry forms, SVG chart (lib/chart.ts)
+    habits/             Habit Tracker page, reducer (lib/reducer.ts), heatmap, 7-day strip
   styles/global.css     design system + theme CSS variables
 public/
   sw.js                 service worker: shows push notifications
