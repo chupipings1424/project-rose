@@ -1,0 +1,114 @@
+/* Savings Goals (Project 04). Reuses the global card / form / badge / stat styles. */
+.savings {
+  display: grid;
+  gap: 1.25rem;
+}
+.savings .tracker-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.savings .tracker-title {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+}
+.savings .stats {
+  margin: 0;
+}
+
+.sav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1rem;
+}
+.sav-goal {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+.sav-goal.is-done {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+.sav-goal.is-overdue {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+.sav-goal-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.sav-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.sav-name {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.sav-amounts {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.sav-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  margin: 0;
+}
+.sav-plan {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.2rem;
+}
+.sav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+.sav-spacer {
+  flex: 1;
+}
+.sav-history {
+  display: grid;
+  gap: 1rem;
+}
+.sav-note {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.sav-chart {
+  margin: 0;
+}
+.sav-chart svg {
+  display: block;
+  width: 100%;
+  height: 180px;
+  border-bottom: 1px solid var(--border);
+}
+.sav-chart-area {
+  fill: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.sav-chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.sav-chart-target {
+  stroke: var(--ok);
+  stroke-width: 1;
+  stroke-dasharray: 6 6;
+  vector-effect: non-scaling-stroke;
+}
+.sav-chart-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}

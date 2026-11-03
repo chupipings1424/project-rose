@@ -3,6 +3,9 @@ import { TRACKER_BASE } from './payment-tracker/paths'
 import { remindersApi } from './reminders/api/client'
 import { friendlyTime } from './reminders/lib/time'
 import { REMINDERS_BASE } from './reminders/paths'
+import { savingsApi } from './savings/api/client'
+import { summarize } from './savings/lib/summary'
+import { SAVINGS_BASE } from './savings/paths'
 import { workbookApi } from './workbook/api/client'
 
 /** A stat is either ready-made text or a money amount the hub formats in the chosen currency. */
@@ -83,6 +86,24 @@ export const PROJECTS: ProjectInfo[] = [
         { label: 'Ringing', value: String(active.filter((r) => r.ringing).length) },
         { label: 'Active', value: String(active.length) },
         { label: 'Next', value: next ? friendlyTime(next) : 'None' },
+      ]
+    },
+  },
+  {
+    id: 'savings',
+    name: 'Savings Goals',
+    tagline: 'Goals · Deposits · Forecast',
+    description:
+      'Save towards goals, log deposits and withdrawals, and see what to put aside each month to make the deadline.',
+    path: SAVINGS_BASE,
+    icon: '◈',
+    loadStats: async () => {
+      const goals = await savingsApi.list()
+      const summary = summarize(goals)
+      return [
+        { label: 'Saved', amount: summary.totalSaved },
+        { label: 'Goals', value: String(summary.active) },
+        { label: 'Reached', value: String(summary.reached) },
       ]
     },
   },

@@ -1,0 +1,1 @@
+export const SAVINGS_BASE = '/projects/savings'
