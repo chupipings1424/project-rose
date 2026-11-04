@@ -70,3 +70,18 @@ export async function disablePush(): Promise<void> {
   await remindersApi.unsubscribe(subscription.endpoint).catch(() => undefined)
   await subscription.unsubscribe()
 }
+
+/** The push address of this browser, to mark "This device" in the list. */
+export async function currentEndpoint(): Promise<string | null> {
+  if (!('serviceWorker' in navigator)) return null
+  return (await currentSubscription().catch(() => null))?.endpoint ?? null
+}
+
+/**
+ * On log out: stop notifications here, so the next person signing in on this device
+ * never sees yours. Never throws (logging out must always work).
+ */
+export async function forgetThisDevice(): Promise<void> {
+  if (!('serviceWorker' in navigator)) return
+  await disablePush().catch(() => undefined)
+}

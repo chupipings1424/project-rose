@@ -5,7 +5,7 @@ import { Brand } from './Brand'
 
 /** The frame around every logged-in page: top bar + the current route (<Outlet />). */
 export function AppShell() {
-  const { logout } = useAuth()
+  const { session, logout } = useAuth()
   const navigate = useNavigate()
 
   function handleLogout() {
@@ -22,9 +22,13 @@ export function AppShell() {
             <NavLink to="/projects" end>
               Projects
             </NavLink>
+            {session?.isAdmin && <NavLink to="/admin/users">Users</NavLink>}
           </nav>
           <div className="topbar-actions">
             <ThemePicker variant="compact" />
+            <NavLink to="/change-password" className="btn ghost" title={session?.email}>
+              Password
+            </NavLink>
             <button type="button" className="btn ghost" onClick={handleLogout}>
               Log out
             </button>

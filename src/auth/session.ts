@@ -16,10 +16,20 @@ export interface Session {
   email: string
   authenticatedAt: number
   expiresAt: number
+  /** Can open the Users page (decided by the API, which also protects the page itself). */
+  isAdmin: boolean
+  /** Signed in with a temporary password: must choose their own before using ROSE. */
+  mustChangePassword: boolean
 }
 
-export function newSession(email: string, now: number = Date.now()): Session {
-  return { email, authenticatedAt: now, expiresAt: now + SESSION_DAYS * DAY_MS }
+/** What the API says about the account (GET /api/auth/session). */
+export interface AccountFlags {
+  isAdmin: boolean
+  mustChangePassword: boolean
+}
+
+export function newSession(email: string, flags: AccountFlags, now: number = Date.now()): Session {
+  return { email, authenticatedAt: now, expiresAt: now + SESSION_DAYS * DAY_MS, ...flags }
 }
 
 function isSession(value: unknown): value is Session {
@@ -41,7 +51,8 @@ export function loadSession(now: number = Date.now()): Session | null {
       clearSession()
       return null
     }
-    return parsed
+    // Saved before accounts existed: no flags yet. AuthProvider asks the API again on start.
+    return { ...parsed, isAdmin: parsed.isAdmin === true, mustChangePassword: parsed.mustChangePassword === true }
   } catch {
     return null
   }

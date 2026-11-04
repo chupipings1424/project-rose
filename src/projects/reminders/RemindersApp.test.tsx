@@ -44,6 +44,7 @@ const wire = (r: Reminder) => ({
 
 describe('RemindersApp', () => {
   let items: Reminder[]
+  let devices: { endpoint: string; label: string; created_at: string }[]
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     const method = init?.method ?? 'GET'
@@ -59,11 +60,18 @@ describe('RemindersApp', () => {
       items = items.map((r) => (r.id === snooze[1] ? { ...r, ringing: false, snoozedUntil: '2030-01-01T02:00:00.000Z' } : r))
       return json(wire(items.find((r) => r.id === snooze[1])!))
     }
+    if (url.endsWith('/push/devices')) return json(devices)
+    if (url.endsWith('/push/unsubscribe') && method === 'POST') {
+      const { endpoint } = JSON.parse(String(init?.body)) as { endpoint: string }
+      devices = devices.filter((d) => d.endpoint !== endpoint)
+      return json({ ok: true, devices: devices.length })
+    }
     return json({ detail: `Unexpected ${method} ${url}` }, 500)
   })
 
   beforeEach(() => {
     items = [reminder({ id: 'r1', text: 'Take vitamins', ringing: true, repeat: 'daily' }), reminder({ id: 'r2' })]
+    devices = []
     vi.stubGlobal('fetch', fetchMock)
   })
   afterEach(() => {
@@ -77,6 +85,20 @@ describe('RemindersApp', () => {
         <RemindersApp />
       </ToastProvider>,
     )
+
+  it('lists the devices that get notifications and removes one', async () => {
+    devices = [{ endpoint: 'https://push.example/pc', label: 'Windows PC (1/11/2026)', created_at: '2026-11-01T00:00:00Z' }]
+    renderApp()
+
+    expect(await screen.findByText('Windows PC (1/11/2026)')).toBeInTheDocument()
+    expect(screen.getByText(/also emailed/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Windows PC (1/11/2026)' }))
+
+    await waitFor(() => expect(screen.queryByText('Windows PC (1/11/2026)')).not.toBeInTheDocument())
+    const sent = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/push/unsubscribe'))
+    expect(JSON.parse(String(sent?.[1]?.body))).toEqual({ endpoint: 'https://push.example/pc' })
+  })
 
   it('groups reminders and snoozes a ringing one', async () => {
     renderApp()

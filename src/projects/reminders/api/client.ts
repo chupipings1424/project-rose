@@ -36,6 +36,19 @@ export interface WorkerStatus {
   now: string
 }
 
+interface PushDeviceDto {
+  endpoint: string
+  label: string
+  created_at: string
+}
+
+/** A phone or browser that gets your notifications. */
+export interface PushDevice {
+  endpoint: string
+  label: string
+  createdAt: string
+}
+
 export const fromDto = (dto: ReminderDto): Reminder => ({
   id: dto.id,
   text: dto.text,
@@ -83,6 +96,8 @@ export const remindersApi = {
   snooze: (reminderId: string, minutes: number) => reminder(call(`/items/${id(reminderId)}/snooze`, 'POST', { minutes })),
 
   pushKey: async () => ({ publicKey: (await call<{ public_key: string }>('/push/key')).public_key }),
+  devices: async (): Promise<PushDevice[]> =>
+    (await call<PushDeviceDto[]>('/push/devices')).map((d) => ({ endpoint: d.endpoint, label: d.label, createdAt: d.created_at })),
   /** The subscription object is the browser's own format and is sent unchanged. */
   subscribe: (subscription: PushSubscriptionJSON, label: string) =>
     call<{ ok: true; devices: number }>('/push/subscribe', 'POST', { subscription, label }),

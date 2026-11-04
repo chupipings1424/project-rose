@@ -8,7 +8,7 @@ const respond = (status: number, body: string) =>
   vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(body, { status }))))
 
 describe('http', () => {
-  beforeEach(() => saveSession(newSession('rose@example.com')))
+  beforeEach(() => saveSession(newSession('rose@example.com', { isAdmin: false, mustChangePassword: false })))
   afterEach(() => vi.unstubAllGlobals())
 
   it('sends the access token and labels JSON bodies', async () => {

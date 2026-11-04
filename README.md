@@ -22,7 +22,8 @@ Backend: ASP.NET Core 9, EF Core + PostgreSQL (Supabase), Docker on Render, xUni
 Browser / installed PWA ??HTTPS??> Render: one Docker container
                                      ?? this React app (built into wwwroot)
                                      ?? ROSE API ??> Supabase Postgres
-Login: supabase-js -> Supabase Auth -> access token -> ROSE API checks it + the email allow-list
+Login: supabase-js -> Supabase Auth -> access token -> ROSE API checks it has a ROSE account
+Each account only sees its own data; the admin adds and removes accounts on the Users page.
 ```
 
 > New to React or TypeScript? Read **[LEARNING.md](LEARNING.md)**. It walks
@@ -37,6 +38,20 @@ Open your Render URL (`https://<service>.onrender.com`) and sign in. Install it 
   (iOS only allows push notifications for Home Screen apps).
 
 You stay signed in on that device for **30 days**. Then sign in again.
+
+### Accounts
+
+Every account gets every project, but only ever sees **its own** payments, budget,
+reminders, savings goals and habits.
+
+- **Admin** (the email(s) in the API's `Access:AdminEmails`): sees **Users** in the top bar.
+  Add someone with their email and a generated temporary password, then send them the
+  password privately. **Reset password** gives a new temporary one; **Remove** deletes their
+  login and all their data.
+- **New users** sign in with the temporary password and must choose their own before
+  anything else. Anyone can change theirs later with **Password** in the top bar.
+- **Logging out** also turns off notifications on that device, so the next person signing
+  in there never sees yours.
 
 Setting up the cloud (Supabase, Render, cron-job.org, backups) is a one-time job, described
 step by step in the [API README](https://github.com/chupipings1424/project-rose-api#deploy-all-free).
@@ -97,7 +112,8 @@ works everywhere and nothing secret is in the JavaScript bundle.
 
 > **Security:** Supabase checks the password and returns a short-lived access token (JWT),
 > refreshed automatically. Every API call sends it as `Authorization: Bearer <token>`; the
-> API verifies its signature and that your email is on its allow-list. Sign-ups are turned
+> API verifies its signature and that it belongs to a ROSE account (and, for the Users page,
+> an admin). Sign-ups are turned
 > off in Supabase. See *Authentication* in LEARNING.md.
 
 ## Themes
@@ -138,7 +154,11 @@ charts, import dialog) lives in `src/projects/workbook/`.
 
 Reminders with a date and time, optionally repeating (**daily**, **weekdays**, **weekly on
 chosen days**, **monthly**). The API checks every 15 seconds; when one is due it sends a
-**push notification** to every phone/PC that turned notifications on.
+**push notification** to each of *your* phones/PCs that turned notifications on, and an
+**email** (the first ring only, not snooze re-rings). Habit nudges work the same way.
+
+Want emails only on the PC? Simply don't enable notifications there. The card at the top of
+Reminders lists every device that gets them, marks **This device**, and can remove any.
 
 In ROSE a ringing reminder can be snoozed (5/10/30/60 min), marked done, edited or deleted.
 Missed one-off reminders stay in **Missed** until you finish them. Repeating reminders move
@@ -202,8 +222,10 @@ src/
                         (Router > Theme > Currency > Auth > Toast)
   App.tsx               routes (login, protected shell, lazy projects)
   api/http.ts           apiFetch: adds the access token, friendly errors, 401 = log out
-  auth/                 supabase.ts (lazy client), authService (login rules), session (30 days),
-                        AuthProvider, ProtectedRoute
+  auth/                 supabase.ts (lazy client), authService (login rules, password change),
+                        session (30 days + admin / must-change-password flags),
+                        AuthProvider, ProtectedRoute (+ AdminRoute)
+  admin/usersApi.ts     the admin API client + temporary password generator
   theme/                6 themes (5 futuristic + 1 retro), ThemeProvider, ThemePicker
   currency/             display currency (? PHP default, $ USD, A$ AUD, ? EUR)
   components/           shared UI: AppShell, Modal, toasts, stat tiles, states
@@ -211,7 +233,7 @@ src/
   lib/format.ts         money / date helpers (formatMoney takes a currency)
   lib/migrateStorage.ts copies old febvy.* browser settings to rose.* once
   lib/serviceWorker.ts  registers public/sw.js, follows notification taps
-  pages/                LoginPage, ProjectsHubPage, NotFoundPage
+  pages/                LoginPage, ChangePasswordPage, AdminUsersPage, ProjectsHubPage, NotFoundPage
   projects/
     registry.ts         the list of projects shown on the hub
     workbook/           shared by the next two: API client + types, layout, charts, import

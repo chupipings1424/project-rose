@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TEST_EMAIL, TEST_JWT, TEST_PASSWORD, mockLogin } from '../test/mockLogin'
-import { NOT_ALLOWED_MESSAGE, SESSION_KEY, clearSession, loadSession, login, logout } from './authService'
+import {
+  NOT_ALLOWED_MESSAGE,
+  PASSWORD_URL,
+  SESSION_KEY,
+  changePassword,
+  clearSession,
+  loadSession,
+  login,
+  logout,
+  passwordProblem,
+  refreshSession,
+} from './authService'
 import { SESSION_DAYS } from './session'
 import { getSupabase } from './supabase'
 
@@ -24,7 +35,63 @@ describe('authService', () => {
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/auth/session')
     expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${TEST_JWT}`)
-    expect(loadSession(2_000)).toEqual({ email: TEST_EMAIL, authenticatedAt: 1_000, expiresAt: 1_000 + SESSION_DAYS * DAY })
+    expect(loadSession(2_000)).toEqual({
+      email: TEST_EMAIL,
+      authenticatedAt: 1_000,
+      expiresAt: 1_000 + SESSION_DAYS * DAY,
+      isAdmin: false,
+      mustChangePassword: false,
+    })
+  })
+
+  it('remembers whether the account is an admin and must change its password', async () => {
+    mockLogin({ admin: true, mustChangePassword: true })
+
+    const result = await login(TEST_EMAIL, TEST_PASSWORD)
+
+    expect(result.ok && result.session).toMatchObject({ isAdmin: true, mustChangePassword: true })
+    expect(loadSession()).toMatchObject({ isAdmin: true, mustChangePassword: true })
+  })
+
+  it('reads a login saved before accounts existed as a normal account', () => {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ email: TEST_EMAIL, authenticatedAt: 1, expiresAt: Date.now() + 60_000 }))
+    expect(loadSession()).toMatchObject({ email: TEST_EMAIL, isAdmin: false, mustChangePassword: false })
+  })
+
+  it('refreshes the account flags from the API, and returns null once the account is gone', async () => {
+    mockLogin()
+    const signedIn = await login(TEST_EMAIL, TEST_PASSWORD)
+    if (!signedIn.ok) throw new Error('login failed')
+
+    mockLogin({ mustChangePassword: true })
+    expect(await refreshSession(signedIn.session)).toMatchObject({ mustChangePassword: true })
+    expect(loadSession()?.mustChangePassword).toBe(true)
+
+    mockLogin({ allowed: false })
+    expect(await refreshSession(signedIn.session)).toBeNull()
+  })
+
+  it('changes the password, passing on the server reason when it refuses', async () => {
+    const fetchMock = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) => Promise.resolve(new Response(null, { status: 204 })))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await changePassword('a brand new one')
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe(PASSWORD_URL)
+    expect(init?.method).toBe('POST')
+    expect(JSON.parse(String(init?.body))).toEqual({ new_password: 'a brand new one' })
+
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(JSON.stringify({ detail: 'Too weak.' }), { status: 400 }))))
+    await expect(changePassword('a brand new one')).rejects.toThrow('Too weak.')
+  })
+
+  it('checks a new password before sending it', () => {
+    expect(passwordProblem('short', 'short')).toBe('Use at least 8 characters.')
+    expect(passwordProblem(' padded pass', ' padded pass')).toBe('The password cannot start or end with a space.')
+    expect(passwordProblem('é'.repeat(37), 'é'.repeat(37))).toBe('That password is too long (72 bytes at most).')
+    expect(passwordProblem('long enough', 'long enougH')).toBe('The two passwords do not match.')
+    expect(passwordProblem('long enough', 'long enough')).toBeNull()
   })
 
   it('explains a wrong email or password', async () => {

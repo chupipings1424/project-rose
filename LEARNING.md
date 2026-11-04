@@ -315,9 +315,11 @@ result. Files: `src/auth/supabase.ts`, `authService.ts`, `session.ts`, `AuthProv
    quietly swaps the refresh token for a new access token before the old one expires.
 4. ROSE then calls `GET /api/auth/session` with `Authorization: Bearer <access token>`.
    The API checks the **signature** with Supabase's public keys (JWKS), the issuer, the
-   audience, the expiry, and finally that the email is on its **allow-list**. A stranger
-   who somehow has a Supabase account gets **403** and is signed out again. The allow-list
-   lives on the server, so editing the browser code cannot skip it.
+   audience, the expiry, and finally that the token's user id (`sub`) has a **ROSE
+   account**. A stranger who somehow has a Supabase account gets **403** and is signed out
+   again. The check lives on the server, so editing the browser code cannot skip it. The
+   answer also says whether you are an **admin** and whether you still **must change your
+   password**; `session.ts` keeps both flags.
 5. `session.ts` remembers the login for **30 days** (`rose.login` in `localStorage`).
    Supabase's free plan cannot limit session length, so ROSE does it in the browser:
    `AuthProvider` logs you out when `expiresAt` passes.
@@ -335,9 +337,29 @@ instead of a normal import, and `authService.ts` imports only *types* from it (`
 disappears at build time). Vite therefore puts the library (about 200 KB) in its own chunk,
 loaded only when someone logs in or calls the API, which keeps the first page load small.
 
-**Adding or removing a person:** create the user in Supabase (*Authentication -> Users*) and
-add the email to `Supabase:AllowedEmails` in the API (`Supabase__AllowedEmails__1` on Render).
-Sign-ups are switched off, so nobody can create their own account.
+**Adding or removing a person:** open **Users** (admins only) and add their email with a
+temporary password. The API creates the Supabase login for them (with its secret key) and a
+ROSE account. Sign-ups are switched off, so nobody can create their own account.
+
+### Accounts: one app, separate data
+
+- **Owner on every row.** Each table in the API has an `owner_id` (your Supabase user id).
+  The API reads the id from the verified token, never from the request body, and every query
+  filters by it. That is why the React code did not change at all for separate data: the
+  same `GET /api/savings/goals` simply returns *your* goals.
+- **Flags drive routes.** `ProtectedRoute` sends anyone with `mustChangePassword` to
+  `/change-password` first (the API also answers 403 everywhere else, so skipping the
+  redirect in the browser gains nothing). `AdminRoute` is the same idea for `/admin/users`.
+  A route guard is just a component that renders either `<Outlet />` or `<Navigate />`.
+- **Refresh on start.** `AuthProvider` asks `/api/auth/session` again whenever the app
+  opens: if the admin reset your password you are sent to choose a new one, and if your
+  account was removed (403) you are logged out. Offline? It keeps the saved session.
+- **Two kinds of log out.** `logout()` (you clicked it) first turns off push on this device
+  (`forgetThisDevice()`, loaded with `import()` only then), because that needs a valid token.
+  `endSession()` (token already rejected) just forgets the login; calling the API there
+  would get another 401 and loop.
+- **Secure random passwords.** `temporaryPassword()` uses `crypto.getRandomValues`, never
+  `Math.random()`, and skips bytes that would make some letters more likely than others.
 
 **Tests never talk to Supabase.** `src/test/mockLogin.ts` replaces `getSupabase()` with a
 fake client (`vi.mock`), and the API's integration tests mint their own tokens with a

@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { ProtectedRoute } from './auth/ProtectedRoute'
+import { AdminRoute, ProtectedRoute } from './auth/ProtectedRoute'
 import { AppShell } from './components/AppShell'
 import { Background } from './components/Background'
 import { LoadingState } from './components/States'
@@ -16,6 +16,8 @@ const BudgetApp = lazy(() => import('./projects/budget/BudgetApp'))
 const RemindersApp = lazy(() => import('./projects/reminders/RemindersApp'))
 const SavingsApp = lazy(() => import('./projects/savings/SavingsApp'))
 const HabitsApp = lazy(() => import('./projects/habits/HabitsApp'))
+const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'))
 
 export default function App() {
   useServiceWorkerNavigation()
@@ -28,6 +30,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
 
           <Route element={<ProtectedRoute />}>
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route element={<AppShell />}>
               <Route path="/" element={<Navigate to="/projects" replace />} />
               <Route path="/projects" element={<ProjectsHubPage />} />
@@ -36,6 +39,9 @@ export default function App() {
               <Route path="/projects/reminders/*" element={<RemindersApp />} />
               <Route path="/projects/savings/*" element={<SavingsApp />} />
               <Route path="/projects/habits/*" element={<HabitsApp />} />
+              <Route element={<AdminRoute />}>
+                <Route path="/admin/users" element={<AdminUsersPage />} />
+              </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Route>

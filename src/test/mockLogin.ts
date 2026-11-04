@@ -11,9 +11,10 @@ export const TEST_JWT = 'supabase-access-token'
  * The test file must call `vi.mock('<path to>/auth/supabase')` first, so
  * getSupabase() is a mock this helper can program.
  *
- * `allowed: false` makes the API answer 403, like an account missing from the allow-list.
+ * `allowed: false` makes the API answer 403, like a login without a ROSE account.
+ * `admin` / `mustChangePassword` are the account flags the API reports.
  */
-export function mockLogin({ allowed = true } = {}) {
+export function mockLogin({ allowed = true, admin = false, mustChangePassword = false } = {}) {
   const auth = {
     signInWithPassword: vi.fn(({ email, password }: { email: string; password: string }) =>
       Promise.resolve(
@@ -32,7 +33,13 @@ export function mockLogin({ allowed = true } = {}) {
 
   const fetchMock = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) => {
     const body = allowed
-      ? { authenticated: true, email: TEST_EMAIL, expires_at: '2099-01-01T00:00:00Z' }
+      ? {
+          authenticated: true,
+          email: TEST_EMAIL,
+          expires_at: '2099-01-01T00:00:00Z',
+          is_admin: admin,
+          must_change_password: mustChangePassword,
+        }
       : { status: 403, title: 'Forbidden' }
     return Promise.resolve(
       new Response(JSON.stringify(body), { status: allowed ? 200 : 403, headers: { 'Content-Type': 'application/json' } }),

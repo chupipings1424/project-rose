@@ -32,6 +32,24 @@
 .push-card.is-insecure {
   border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
+.push-devices {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.push-devices li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.push-devices li > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
 
 .rem-list {
