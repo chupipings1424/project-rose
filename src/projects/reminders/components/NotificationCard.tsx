@@ -4,12 +4,12 @@ import { remindersApi } from '../api/client'
 import { disablePush, enablePush, getPushState, type PushState } from '../lib/push'
 
 const HELP: Record<PushState, string> = {
-  on: 'This browser shows a Windows notification whenever a reminder rings.',
-  off: 'Turn on notifications to get a Windows notification for each reminder, even when the ROSE tab is closed.',
-  install: 'Phones are not supported yet. Use ROSE on your PC for reminder notifications.',
-  insecure: 'Notifications only work at http://localhost:5180 on this PC.',
+  on: 'This device gets a notification whenever a reminder rings or a habit nudges.',
+  off: 'Turn on notifications to get one for each reminder, even when ROSE is closed.',
+  install: 'On iPhone, add ROSE to your Home Screen first (Share > Add to Home Screen), open it from there and turn notifications on.',
+  insecure: 'Notifications need a secure connection: open ROSE from its https:// address (or http://localhost).',
   denied: 'Notifications are blocked. Click the lock icon in the address bar → Notifications → Allow.',
-  unsupported: 'This browser cannot receive push notifications. The desktop popup on your PC still works.',
+  unsupported: 'This browser cannot receive push notifications. On iPhone, add ROSE to your Home Screen first (Share > Add to Home Screen) and open it from there.',
 }
 
 /** Shows whether this device will get push notifications and lets you turn them on. */

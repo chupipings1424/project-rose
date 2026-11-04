@@ -24,3 +24,19 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  # Render builds the UI into the API's container, but only watches the API repo.
+  # This asks Render to rebuild when the UI changes. Add the service's deploy hook URL
+  # (Render > Settings > Deploy Hook) as the repo secret RENDER_DEPLOY_HOOK.
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Redeploy ROSE on Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "RENDER_DEPLOY_HOOK is not set - skipping."; exit 0; fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Render deploy triggered."

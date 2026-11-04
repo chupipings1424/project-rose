@@ -184,7 +184,7 @@ export default function PaymentsPage() {
             </p>
             <p className="muted small">
               {pendingDelete.status}
-              {pendingDelete.note ? ` — ${pendingDelete.note}` : ''}. This removes the row from the Excel file and cannot be
+              {pendingDelete.note ? ` — ${pendingDelete.note}` : ''}. This deletes the payment and cannot be
               undone.
             </p>
           </>
@@ -204,8 +204,8 @@ export default function PaymentsPage() {
         </p>
         <p className="muted small">
           {summary.data
-            ? `This removes the title and all ${titlePayments.length} payment(s) under it (${money(summary.data.total_paid)} paid so far) from the Excel file.`
-            : 'This removes the title and every payment under it from the Excel file.'}{' '}
+            ? `This removes the title and all ${titlePayments.length} payment(s) under it (${money(summary.data.total_paid)} paid so far).`
+            : 'This removes the title and every payment under it.'}{' '}
           This cannot be undone.
         </p>
       </ConfirmDialog>

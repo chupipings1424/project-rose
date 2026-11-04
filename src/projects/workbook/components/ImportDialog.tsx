@@ -123,7 +123,7 @@ function ImportForm({ kind, onClose, onImported }: Omit<Props, 'open'>) {
         )}
       </div>
 
-      {busy && <p className="muted small">{busy === 'preview' ? 'Reading the file…' : 'Writing to the workbook…'}</p>}
+      {busy && <p className="muted small">{busy === 'preview' ? 'Reading the file…' : 'Saving…'}</p>}
       {error && (
         <p className="form-error" role="alert">
           {error}

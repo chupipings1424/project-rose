@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { SESSION_KEY, saveSession } from '../auth/session'
+import { SESSION_KEY, newSession, saveSession } from '../auth/session'
 import { UNAUTHORIZED_EVENT, apiFetch, errorMessage, requestJson } from './http'
+
+vi.mock('../auth/supabase', () => ({ accessToken: () => Promise.resolve('jwt-123') }))
 
 const respond = (status: number, body: string) =>
   vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(body, { status }))))
 
 describe('http', () => {
-  beforeEach(() => saveSession({ accessToken: 'jwt-123', authenticatedAt: 0, expiresAt: Date.now() + 60_000 }))
+  beforeEach(() => saveSession(newSession('rose@example.com')))
   afterEach(() => vi.unstubAllGlobals())
 
-  it('sends the session token and labels JSON bodies', async () => {
+  it('sends the access token and labels JSON bodies', async () => {
     respond(200, '{}')
 
     await apiFetch('/api/x', { method: 'POST', body: '{}' })
@@ -27,7 +29,7 @@ describe('http', () => {
     await expect(apiFetch('/api/x')).rejects.toThrow(/session has ended/)
 
     expect(listener).toHaveBeenCalledOnce()
-    expect(sessionStorage.getItem(SESSION_KEY)).toBeNull()
+    expect(localStorage.getItem(SESSION_KEY)).toBeNull()
     window.removeEventListener(UNAUTHORIZED_EVENT, listener)
   })
 
@@ -38,7 +40,7 @@ describe('http', () => {
 
   it('reports an offline API when the proxy answers with HTML', async () => {
     respond(502, '<html>Bad gateway</html>')
-    await expect(requestJson('/api/x')).rejects.toThrow(/Cannot reach the ROSE API/)
+    await expect(requestJson('/api/x')).rejects.toThrow(/Cannot reach ROSE/)
   })
 
   it('reads detail first, then error', () => {

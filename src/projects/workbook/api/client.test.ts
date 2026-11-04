@@ -1,13 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { saveSession } from '../../../auth/session'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { workbookApi } from './client'
+
+vi.mock('../../../auth/supabase', () => ({ accessToken: () => Promise.resolve('jwt') }))
 
 function mockFetch(status: number, body: string, headers?: HeadersInit) {
   vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(body, { status, headers }))))
 }
 
 describe('workbookApi', () => {
-  beforeEach(() => saveSession({ accessToken: 'jwt', authenticatedAt: 0, expiresAt: Date.now() + 60_000 }))
   afterEach(() => vi.unstubAllGlobals())
 
   it('sends DELETE with the encoded title and the session token', async () => {

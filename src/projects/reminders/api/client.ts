@@ -1,7 +1,7 @@
 import { requestJson } from '../../../api/http'
 import type { Reminder, ReminderInput, RepeatRule } from '../model'
 
-/** The reminders part of the ROSE API (Vite proxies /api, see vite.config.ts). */
+/** The reminders part of the ROSE API. */
 export const REMINDERS_API = '/api/reminders'
 
 /**
@@ -27,14 +27,12 @@ interface ReminderDto {
 interface StatusDto {
   ok: true
   devices: number
-  native_alarms: boolean
   now: string
 }
 
 export interface WorkerStatus {
   ok: true
   devices: number
-  nativeAlarms: boolean
   now: string
 }
 
@@ -74,7 +72,7 @@ const id = (value: string) => encodeURIComponent(value)
 export const remindersApi = {
   status: async (): Promise<WorkerStatus> => {
     const dto = await call<StatusDto>('/status')
-    return { ok: dto.ok, devices: dto.devices, nativeAlarms: dto.native_alarms, now: dto.now }
+    return { ok: dto.ok, devices: dto.devices, now: dto.now }
   },
   list: async () => (await call<ReminderDto[]>('/items')).map(fromDto),
   create: (input: ReminderInput) => reminder(call('/items', 'POST', toDto(input))),

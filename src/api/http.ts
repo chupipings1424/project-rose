@@ -2,18 +2,20 @@
  * The one door between the browser and the ROSE API (the .NET backend in the
  * project-rose-api repo). Every request goes through `apiFetch`, which:
  *
- *   - adds `Authorization: Bearer <session token>`
- *   - turns "server not running" into a friendly message
- *   - logs you out everywhere when the API answers 401 (session expired)
+ *   - adds `Authorization: Bearer <access token>` (from Supabase, refreshed as needed)
+ *   - turns "server unreachable" into a friendly message
+ *   - logs you out everywhere when the API answers 401 (token no longer valid)
  *
- * Vite forwards /api/* to the API in development (see vite.config.ts).
+ * In the cloud the API serves this app, so /api is the same origin. In development
+ * Vite forwards /api/* to the API (see vite.config.ts).
  */
-import { clearSession, loadSession } from '../auth/session'
+import { clearSession } from '../auth/session'
+import { accessToken } from '../auth/supabase'
 
 /** Fired on `window` when the API rejects our session; AuthProvider listens and logs out. */
 export const UNAUTHORIZED_EVENT = 'rose:unauthorized'
 
-export const OFFLINE_MESSAGE = 'Cannot reach the ROSE API. Start ROSE with "npm start".'
+export const OFFLINE_MESSAGE = 'Cannot reach ROSE right now - check your connection and try again.'
 export const SESSION_ENDED_MESSAGE = 'Your session has ended - please log in again.'
 
 export class ApiError extends Error {
@@ -38,11 +40,11 @@ export function errorMessage(body: unknown): string | undefined {
   return undefined
 }
 
-/** `fetch` plus the session token. Throws ApiError when offline or logged out. */
+/** `fetch` plus the access token. Throws ApiError when offline or logged out. */
 export async function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers)
-  const session = loadSession()
-  if (session) headers.set('Authorization', `Bearer ${session.accessToken}`)
+  const token = await accessToken()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
   // FormData sets its own multipart Content-Type (with the boundary), so only label JSON bodies.
   if (typeof init.body === 'string' && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
 

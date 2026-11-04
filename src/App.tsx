@@ -4,7 +4,6 @@ import { ProtectedRoute } from './auth/ProtectedRoute'
 import { AppShell } from './components/AppShell'
 import { Background } from './components/Background'
 import { LoadingState } from './components/States'
-import { PowerControl } from './lifetime/PowerControl'
 import { useServiceWorkerNavigation } from './lib/serviceWorker'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -24,7 +23,6 @@ export default function App() {
   return (
     <>
       <Background />
-      <PowerControl />
       <Suspense fallback={<LoadingState label="Loading module…" />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

@@ -72,7 +72,7 @@ export const PROJECTS: ProjectInfo[] = [
     name: 'Reminders',
     tagline: 'Alarms · Repeats · Notifications',
     description:
-      'To-dos with a time. A background worker rings them as an always-on-top popup and a Windows notification.',
+      'To-dos with a time. The cloud API rings them on time and sends a push notification to your phone and PC.',
     path: REMINDERS_BASE,
     icon: '◷',
     loadStats: async () => {

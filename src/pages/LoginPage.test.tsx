@@ -4,9 +4,11 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../auth/AuthProvider'
 import { ProtectedRoute } from '../auth/ProtectedRoute'
-import { mockLoginApi, TEST_TOKEN } from '../test/mockLoginApi'
+import { mockLogin, TEST_EMAIL, TEST_PASSWORD } from '../test/mockLogin'
 import { ThemeProvider } from '../theme/ThemeProvider'
 import LoginPage from './LoginPage'
+
+vi.mock('../auth/supabase')
 
 function renderApp(startAt = '/projects') {
   return render(
@@ -26,7 +28,10 @@ function renderApp(startAt = '/projects') {
 }
 
 describe('LoginPage', () => {
-  beforeEach(() => mockLoginApi())
+  beforeEach(() => {
+    localStorage.clear()
+    mockLogin()
+  })
   afterEach(() => vi.unstubAllGlobals())
 
   it('redirects a visitor without a session to the login page', () => {
@@ -34,23 +39,25 @@ describe('LoginPage', () => {
     expect(screen.getByRole('heading', { name: 'PROJECT ROSE' })).toBeInTheDocument()
   })
 
-  it('shows an error for a wrong token and stays on the login page', async () => {
+  it('shows an error for a wrong password and stays on the login page', async () => {
     const user = userEvent.setup()
     renderApp()
 
-    await user.type(screen.getByLabelText('Access token'), 'not-the-token')
-    await user.click(screen.getByRole('button', { name: 'Authenticate' }))
+    await user.type(screen.getByLabelText('Email'), TEST_EMAIL)
+    await user.type(screen.getByLabelText('Password'), 'not-the-password')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/denied/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Wrong email or password.')
     expect(screen.queryByText('Projects hub')).not.toBeInTheDocument()
   })
 
-  it('signs in with the right token and lands where you were going', async () => {
+  it('signs in with the right password and lands where you were going', async () => {
     const user = userEvent.setup()
     renderApp('/projects')
 
-    await user.type(screen.getByLabelText('Access token'), TEST_TOKEN)
-    await user.click(screen.getByRole('button', { name: 'Authenticate' }))
+    await user.type(screen.getByLabelText('Email'), TEST_EMAIL)
+    await user.type(screen.getByLabelText('Password'), TEST_PASSWORD)
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(await screen.findByText('Projects hub')).toBeInTheDocument()
   })

@@ -8,27 +8,29 @@ const MAX_TIMER_MS = 2_147_483_647
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<auth.Session | null>(() => auth.loadSession())
 
-  const login = useCallback(async (token: string) => {
-    const result = await auth.login(token)
+  const login = useCallback(async (email: string, password: string) => {
+    const result = await auth.login(email, password)
     if (result.ok) setSession(result.session)
     return result
   }, [])
 
   const logout = useCallback(() => {
-    auth.clearSession()
+    void auth.logout()
     setSession(null)
   }, [])
 
-  // Log out automatically when the session expires while the app is open.
+  // Log out automatically when the 30 days are up while the app is open.
   useEffect(() => {
     if (!session) return
-    // Browsers fire at once for delays above 2^31-1 ms (~24.8 days), so cap the wait.
+    // Browsers fire at once for delays above 2^31-1 ms (~24.8 days), so cap the wait;
+    // the effect simply runs again after the next reload.
     const delay = Math.min(Math.max(session.expiresAt - Date.now(), 0), MAX_TIMER_MS)
+    if (delay === MAX_TIMER_MS) return
     const timer = window.setTimeout(logout, delay)
     return () => window.clearTimeout(timer) // cleanup runs before the next effect / on unmount
   }, [session, logout])
 
-  // The API rejected our session (expired, or the API was restarted with a new key).
+  // The API rejected our token (signed out elsewhere, or the account was removed).
   useEffect(() => {
     window.addEventListener(UNAUTHORIZED_EVENT, logout)
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, logout)

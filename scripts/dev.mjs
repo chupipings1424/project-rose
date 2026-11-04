@@ -1,16 +1,16 @@
-// Starts everything Project ROSE needs with one command: `npm start`.
+// Starts everything Project ROSE needs for local development with one command: `npm start`.
 //
-//   1. the ROSE API - the .NET backend from the project-rose-api repo
-//      (payment tracker + reminders + Swagger), unless it is already running
-//   2. the Vite dev server for this React app
+//   1. a local PostgreSQL database (Docker, from project-rose-api/docker-compose.yml),
+//      unless something already listens on port 5433
+//   2. the ROSE API - the .NET backend from the project-rose-api repo - unless it is
+//      already running (it creates/updates the database tables on start)
+//   3. the Vite dev server for this React app, which forwards /api/* to the API
 //
-// Settings come from .env (Node loads it via --env-file-if-exists).
-//
-// Auto-close: the API started here shuts itself down 20 seconds after the last
-// ROSE tab closes (or when you press the power button). When the API stops,
-// this script stops Vite and exits too. Set ROSE_AUTO_CLOSE=0 to keep it running.
+// Login still goes through your Supabase project, configured in the API's
+// appsettings.Local.json. Settings for this script come from .env.
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -18,10 +18,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const apiUrl = process.env.ROSE_API_URL ?? 'http://127.0.0.1:5175'
 const apiDir = path.resolve(root, process.env.ROSE_API_DIR ?? '../project-rose-api')
 const apiProject = path.join(apiDir, 'src', 'Rose.Api')
-const autoClose = process.env.ROSE_AUTO_CLOSE !== '0'
+const dbPort = Number(process.env.ROSE_DB_PORT ?? 5433)
 const children = []
 
-const colors = { api: '\x1b[35m', rose: '\x1b[36m', reset: '\x1b[0m' }
+const colors = { db: '\x1b[33m', api: '\x1b[35m', rose: '\x1b[36m', reset: '\x1b[0m' }
 const log = (name, message) => console.log(`${colors[name]}[${name}]${colors.reset} ${message}`)
 
 /** True when a server answers this URL within 1.5s. */
@@ -32,6 +32,20 @@ async function isUp(url) {
   } catch {
     return false
   }
+}
+
+/** True when something accepts TCP connections on this local port. */
+function isListening(port) {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: '127.0.0.1', port, timeout: 1000 })
+    const done = (result) => {
+      socket.destroy()
+      resolve(result)
+    }
+    socket.once('connect', () => done(true))
+    socket.once('error', () => done(false))
+    socket.once('timeout', () => done(false))
+  })
 }
 
 function run(name, cmd, args, options = {}) {
@@ -60,6 +74,24 @@ function shutdown(code = 0) {
 process.on('SIGINT', () => shutdown(0))
 process.on('SIGTERM', () => shutdown(0))
 
+async function startDatabase() {
+  if (await isListening(dbPort)) {
+    log('db', `PostgreSQL already listening on port ${dbPort}`)
+    return true
+  }
+  const compose = path.join(apiDir, 'docker-compose.yml')
+  if (!existsSync(compose)) {
+    log('db', `Cannot find ${compose}.`)
+    return false
+  }
+  log('db', 'starting PostgreSQL in Docker (the first time downloads the image)...')
+  // --wait returns once the container's health check passes. The data survives in a Docker volume.
+  const up = spawnSync('docker', ['compose', '-f', compose, 'up', '-d', '--wait'], { stdio: 'inherit' })
+  if (up.status === 0) return true
+  log('db', 'Could not start PostgreSQL. Is Docker Desktop running?')
+  return false
+}
+
 async function waitForApi(child, seconds) {
   for (let i = 0; i < seconds; i++) {
     if (child.exitCode !== null) return false
@@ -83,11 +115,12 @@ async function startApi() {
     log('api', 'The .NET SDK was not found. Install .NET 9 from https://dotnet.microsoft.com/download.')
     return
   }
-  if (!existsSync(path.join(apiProject, 'appsettings.Local.json')) && !process.env.Auth__AccessToken) {
-    log('api', `No access token configured. Copy appsettings.Local.example.json to appsettings.Local.json in`)
-    log('api', `${apiProject} and put your token in it.`)
+  if (!existsSync(path.join(apiProject, 'appsettings.Local.json')) && !process.env.Supabase__Url) {
+    log('api', 'Supabase is not configured. Copy appsettings.Local.example.json to appsettings.Local.json in')
+    log('api', `${apiProject} and fill in your Supabase URL, publishable key and email.`)
     return
   }
+  if (!(await startDatabase())) return
 
   log('api', 'building (the first time takes a minute)...')
   // No shell here: the folder path may contain spaces (e.g. OneDrive - Company).
@@ -98,20 +131,13 @@ async function startApi() {
   }
 
   // Run the built DLL directly (not `dotnet run`), so stopping ROSE also stops the API.
-  // The working folder is the project, so appsettings*.json and ../../data are found.
+  // The working folder is the project, so appsettings*.json are found.
   const child = run('api', 'dotnet', [path.join('bin', 'Debug', 'net9.0', 'Rose.Api.dll')], {
     cwd: apiProject,
-    env: {
-      ...process.env,
-      ASPNETCORE_ENVIRONMENT: 'Development',
-      URLS: apiUrl,
-      Shutdown__Enabled: String(autoClose),
-    },
+    env: { ...process.env, ASPNETCORE_ENVIRONMENT: 'Development', URLS: apiUrl },
   })
-  if (await waitForApi(child, 60)) {
-    log('api', `ready - Swagger UI at ${apiUrl}/swagger`)
-    if (autoClose) log('api', 'ROSE closes itself 20 seconds after the last ROSE tab is closed.')
-  } else log('api', 'did not start - see the messages above.')
+  if (await waitForApi(child, 60)) log('api', `ready - Swagger UI at ${apiUrl}/swagger`)
+  else log('api', 'did not start - see the messages above.')
 }
 
 await startApi()

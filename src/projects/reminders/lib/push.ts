@@ -1,8 +1,8 @@
 import { remindersApi } from '../api/client'
 
 /**
- * Web Push in the browser. Browsers allow it only on https:// or localhost, so ROSE
- * offers it on the PC (http://localhost:5180). See LEARNING.md section 14.
+ * Web Push in the browser. Browsers allow it only on https:// (the cloud site) or
+ * localhost (development). See LEARNING.md section 14.
  */
 export type PushState = 'unsupported' | 'insecure' | 'install' | 'denied' | 'off' | 'on'
 

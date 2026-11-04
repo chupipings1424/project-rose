@@ -47,7 +47,7 @@ export default function BudgetPage() {
   async function commitCell(line: BudgetLine, month: number, value: string) {
     try {
       const result = await workbookApi.updateBudgetCell(line.id, month, value, year)
-      apply(result.budget, 'Saved to Excel')
+      apply(result.budget, 'Saved')
     } catch (error) {
       notify((error as Error).message, 'error')
       budget.reload()
@@ -59,7 +59,7 @@ export default function BudgetPage() {
     setDeleteBusy(true)
     try {
       const result = await workbookApi.deleteBudgetLine(deleting.line.id, year)
-      apply(result.budget, 'Deleted from Excel')
+      apply(result.budget, 'Deleted')
       setDeleting(null)
     } catch (error) {
       notify((error as Error).message, 'error')
@@ -132,7 +132,7 @@ export default function BudgetPage() {
           <StatTile label="Line items" value={data.line_count} />
         </div>
         <p className="muted small">
-          Click any month cell to type an amount. Press Enter or click away to save it to the Excel workbook.
+          Click any month cell to type an amount. Press Enter or click away to save it.
         </p>
       </section>
 
@@ -166,7 +166,7 @@ export default function BudgetPage() {
         onSubmit={async (line, changes) => {
           const result = await workbookApi.updateBudgetLine(line.id, changes, year)
           setEditing(null)
-          apply(result.budget, 'Changes saved to Excel')
+          apply(result.budget, 'Changes saved')
         }}
       />
 
@@ -220,7 +220,7 @@ export default function BudgetPage() {
         </p>
         <p className="muted small">
           This removes all {data.line_count} line(s) — {money(data.total_revenue)} revenue and{' '}
-          {money(data.total_expenses)} expenses — and the “Budget {year}” sheet from the Excel file. This cannot be
+          {money(data.total_expenses)} expenses — for {year}. This cannot be
           undone.
         </p>
       </ConfirmDialog>

@@ -67,7 +67,7 @@ export function PaymentForm({ summary, onSaved }: Props) {
       setDueDate(result.summary.next_due_date || '')
       await fillNow()
       notify(
-        result.settled ? `Instalment due ${dueDate} marked as paid` : 'Payment saved to payments.xlsx',
+        result.settled ? `Instalment due ${dueDate} marked as paid` : 'Payment saved',
         'success',
       )
     } catch (error) {

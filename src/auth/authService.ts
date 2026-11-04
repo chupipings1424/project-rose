@@ -1,60 +1,70 @@
 /**
  * Login rules live here, away from React, so they are easy to test.
  *
- * The token is checked by the ROSE API (never in the browser): the API compares
- * it in constant time and answers with a signed session token (a JWT) that
- * every later request sends back. See LEARNING.md -> "Authentication".
+ *   1. Supabase Auth checks the email and password and returns a session (JWT).
+ *   2. ROSE's API is asked whether that account may use ROSE (the allow-list lives
+ *      on the server, so nobody can skip it by editing the browser code).
+ *   3. We remember the login for 30 days.
+ *
+ * See LEARNING.md -> "Authentication".
  */
-import { OFFLINE_MESSAGE, errorMessage } from '../api/http'
-import { saveSession, type Session } from './session'
+import type { AuthError } from '@supabase/supabase-js'
+import { OFFLINE_MESSAGE } from '../api/http'
+import { clearSession, newSession, saveSession, type Session } from './session'
+import { getSupabase } from './supabase'
 
 export { SESSION_KEY, clearSession, loadSession, type Session } from './session'
 
-export const LOGIN_URL = '/api/auth/login'
+export const SESSION_CHECK_URL = '/api/auth/session'
+export const NOT_ALLOWED_MESSAGE = 'This account is not allowed to use ROSE.'
 
 /** A discriminated union: check `result.ok` and TypeScript knows which fields exist. */
 export type LoginResult = { ok: true; session: Session } | { ok: false; error: string }
 
-/** What POST /api/auth/login answers (the API uses snake_case JSON). */
-interface LoginResponse {
-  access_token: string
-  token_type: string
-  expires_at: string
+// Checked by name/code (not instanceof helpers) so supabase-js stays out of the main bundle.
+function loginError(error: AuthError): string {
+  if (error.name === 'AuthRetryableFetchError') return 'Cannot reach the login service - check your internet connection.'
+  if (error.code === 'invalid_credentials') return 'Wrong email or password.'
+  if (error.status === 429) return 'Too many attempts - wait a minute and try again.'
+  return error.message || 'Login failed.'
 }
 
-function isLoginResponse(value: unknown): value is LoginResponse {
-  if (typeof value !== 'object' || value === null) return false
-  const candidate = value as Record<string, unknown>
-  return typeof candidate.access_token === 'string' && typeof candidate.expires_at === 'string'
-}
+export async function login(email: string, password: string, now: number = Date.now()): Promise<LoginResult> {
+  const address = email.trim()
+  if (!address || !password) return { ok: false, error: 'Enter your email and password.' }
 
-export async function login(token: string, now: number = Date.now()): Promise<LoginResult> {
-  const attempt = token.trim()
-  if (!attempt) return { ok: false, error: 'Enter your access token.' }
-
-  let response: Response
+  let supabase
   try {
-    response = await fetch(LOGIN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: attempt }),
-    })
+    supabase = await getSupabase()
   } catch {
     return { ok: false, error: OFFLINE_MESSAGE }
   }
 
-  const body: unknown = await response.json().catch(() => undefined)
-  if (!response.ok) {
-    // 401 = wrong token, 429 = too many attempts; both come with a readable `detail`.
-    return { ok: false, error: errorMessage(body) ?? (response.status >= 500 ? OFFLINE_MESSAGE : 'Login failed.') }
-  }
-  if (!isLoginResponse(body)) return { ok: false, error: OFFLINE_MESSAGE }
+  const { data, error } = await supabase.auth.signInWithPassword({ email: address, password })
+  if (error || !data.session) return { ok: false, error: error ? loginError(error) : 'Login failed.' }
 
-  const session: Session = {
-    accessToken: body.access_token,
-    authenticatedAt: now,
-    expiresAt: Date.parse(body.expires_at),
+  let check: Response | undefined
+  try {
+    check = await fetch(SESSION_CHECK_URL, { headers: { Authorization: `Bearer ${data.session.access_token}` } })
+  } catch {
+    // handled below
   }
+  if (!check?.ok) {
+    await supabase.auth.signOut({ scope: 'local' })
+    return { ok: false, error: check?.status === 403 ? NOT_ALLOWED_MESSAGE : OFFLINE_MESSAGE }
+  }
+
+  const session = newSession(data.user.email ?? address, now)
   saveSession(session)
   return { ok: true, session }
+}
+
+/** Forgets the login here and drops the Supabase session on this device. */
+export async function logout(): Promise<void> {
+  clearSession()
+  try {
+    await (await getSupabase()).auth.signOut({ scope: 'local' })
+  } catch {
+    // offline: the local tokens are dropped next time the client loads
+  }
 }

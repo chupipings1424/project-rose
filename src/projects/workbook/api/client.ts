@@ -20,9 +20,9 @@ import type {
 import { downloadFile, requestJson } from '../../../api/http'
 
 /**
- * The workbook part of the ROSE API (Vite proxies /api, see vite.config.ts).
- * Payment Tracker and Budget are separate projects in the hub, but both live
- * in the same payments.xlsx, so they share this one client.
+ * The payment tracker part of the ROSE API. Payment Tracker and Budget are separate
+ * projects in the hub, but both share the same endpoints and the Excel export, so
+ * they share this one client.
  */
 export const API_BASE = '/api/payment-tracker'
 
@@ -87,7 +87,7 @@ export const workbookApi = {
     if (options.year) form.append('year', options.year)
     return request<ImportPlan>(`/import/${kind}`, { method: 'POST', body: form })
   },
-  /** Saves the whole workbook (payments.xlsx) to the browser's downloads. */
+  /** Exports everything (titles, payments, budget, reports) as payments.xlsx to the browser's downloads. */
   download: () => downloadFile(`${API_BASE}/download`, 'payments.xlsx'),
   downloadSample: (kind: ImportKind) => downloadFile(`${API_BASE}/import/sample/${kind}`, `sample-${kind}.csv`),
 }

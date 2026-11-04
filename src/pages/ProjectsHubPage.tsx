@@ -18,7 +18,7 @@ function ProjectStats({ project }: { project: ProjectInfo }) {
 
   if (!project.loadStats) return null
   if (stats.loading) return <p className="muted small">Linking…</p>
-  if (stats.error) return <p className="status-line offline">● Offline — start it with npm start</p>
+  if (stats.error) return <p className="status-line offline">● Offline — cannot reach ROSE</p>
 
   return (
     <>

@@ -4,7 +4,7 @@ import type { LoginResult, Session } from './authService'
 export interface AuthContextValue {
   session: Session | null
   isAuthenticated: boolean
-  login: (token: string) => Promise<LoginResult>
+  login: (email: string, password: string) => Promise<LoginResult>
   logout: () => void
 }
 

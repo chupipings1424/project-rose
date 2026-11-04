@@ -51,9 +51,10 @@ Things to notice:
 
 State is data that, when changed, makes React **re-render** the component.
 
-- `src/pages/LoginPage.tsx`: the token input is a **controlled input**:
-  `value={token}` + `onChange={(e) => setToken(e.target.value)}`. React state is
-  the single source of truth.
+- `src/pages/LoginPage.tsx`: the email and password fields are **controlled inputs**:
+  `value={email}` + `onChange={(event) => setEmail(event.target.value)}`. React state is
+  the single source of truth. A third piece of state, `reveal`, switches the password
+  field between `type="password"` and `type="text"` (the Show/Hide button).
 - `src/projects/payment-tracker/components/PaymentForm.tsx`: many fields, one
   `useState` each, and `handleSubmit` calls `e.preventDefault()`.
 
@@ -185,10 +186,10 @@ Tip: hover anything in VS Code to see its inferred type.
 
 All data comes from the **ROSE API**, a separate .NET 9 project
 ([project-rose-api](https://github.com/chupipings1424/project-rose-api)). Its Swagger UI at
-<http://127.0.0.1:5175/swagger> lists every endpoint and lets you try them out.
+<http://127.0.0.1:5175/swagger> (local development) lists every endpoint and lets you try them out.
 
 - `src/api/http.ts` is the one door to the API. `apiFetch()` adds
-  `Authorization: Bearer <session token>`, turns "server not running" into a friendly
+  `Authorization: Bearer <access token>` (from `accessToken()`, section 12), turns "cannot reach the server" into a friendly
   message, and on **401** clears the session and fires `rose:unauthorized`, which
   `AuthProvider` listens for to send you back to the login page.
 - Each API area has its own typed client (`workbook/api/client.ts`,
@@ -300,28 +301,47 @@ TDD loop (Kent Beck): write a failing test → make it pass → refactor.
 
 ## 12. Authentication
 
-1. The login page sends your token to `POST /api/auth/login`.
-2. The API compares it with the token in its `appsettings.Local.json` using a
-   **constant-time** comparison (so timing does not reveal how many characters matched),
-   and allows at most 10 attempts per minute.
-3. If it matches, the API returns a **JWT** (JSON Web Token): a small signed note saying
-   "this session is valid until ...". It is signed with a key only the API knows
-   (`data/session-signing.key`), so the browser cannot forge or extend it.
-4. `authService.ts` keeps it in `sessionStorage` (`rose.session`) and `apiFetch()` sends it
-   with every request. The API rejects any request without a valid one (**401**).
-   `sessionStorage` is like `localStorage`, but it is wiped when the browser closes, so
-   closing the browser logs you out. Your theme stays in `localStorage` because it should
-   survive.
-5. After 12 hours (or if the key changes) the API answers 401 and ROSE returns to the login page.
+ROSE does not store passwords itself. **Supabase Auth** does that, and ROSE only checks the
+result. Files: `src/auth/supabase.ts`, `authService.ts`, `session.ts`, `AuthProvider.tsx`.
 
-Nothing secret is in the JavaScript bundle any more: search the built files and you will not
-find the token.
+1. The login page calls `login(email, password)` in `authService.ts`.
+2. `getSupabase()` creates the Supabase client on first use. It needs the project URL and
+   the **publishable key**, which it fetches from `GET /api/config`. They are public by
+   design (they only let you *ask* Supabase to log in), and fetching them means the same
+   build works locally and in the cloud.
+3. `supabase.auth.signInWithPassword()` sends the email and password to Supabase. If they
+   match, Supabase returns an **access token** (a JWT that expires after an hour) and a
+   **refresh token**. supabase-js stores both in `localStorage` (`rose.supabase`) and
+   quietly swaps the refresh token for a new access token before the old one expires.
+4. ROSE then calls `GET /api/auth/session` with `Authorization: Bearer <access token>`.
+   The API checks the **signature** with Supabase's public keys (JWKS), the issuer, the
+   audience, the expiry, and finally that the email is on its **allow-list**. A stranger
+   who somehow has a Supabase account gets **403** and is signed out again. The allow-list
+   lives on the server, so editing the browser code cannot skip it.
+5. `session.ts` remembers the login for **30 days** (`rose.login` in `localStorage`).
+   Supabase's free plan cannot limit session length, so ROSE does it in the browser:
+   `AuthProvider` logs you out when `expiresAt` passes.
+6. From then on `apiFetch()` asks `accessToken()` for a fresh token on every request. A
+   **401** from the API logs you out.
 
-**Changing the token:** edit `project-rose-api/src/Rose.Api/appsettings.Local.json`, then
-restart `npm start`. To log every device out, delete `data/session-signing.key` and restart.
+**What is a JWT?** Three base64url parts: `header.payload.signature`. The payload is
+readable by anyone (paste a token into <https://jwt.io>: you will see your email, `role`,
+`exp`). The signature is what makes it trustworthy: Supabase signs with a private key, the
+API verifies with the matching public key, so nobody can change the payload without
+breaking the signature. Never put secrets in a JWT payload.
 
-**Possible next step:** keep the session in an **httpOnly cookie** instead of
-`sessionStorage`, so JavaScript (including any injected script) cannot read it.
+**Why lazy-load supabase-js?** `supabase.ts` uses `await import('@supabase/supabase-js')`
+instead of a normal import, and `authService.ts` imports only *types* from it (`import type`
+disappears at build time). Vite therefore puts the library (about 200 KB) in its own chunk,
+loaded only when someone logs in or calls the API, which keeps the first page load small.
+
+**Adding or removing a person:** create the user in Supabase (*Authentication -> Users*) and
+add the email to `Supabase:AllowedEmails` in the API (`Supabase__AllowedEmails__1` on Render).
+Sign-ups are switched off, so nobody can create their own account.
+
+**Tests never talk to Supabase.** `src/test/mockLogin.ts` replaces `getSupabase()` with a
+fake client (`vi.mock`), and the API's integration tests mint their own tokens with a
+test-only key.
 
 ---
 
@@ -362,12 +382,12 @@ checked against the old version with the same inputs before the switch.)
 
 **Web Push in four steps:**
 
-1. The API creates a **VAPID key pair** once (`data/vapid.json`). The public key
+1. The API creates a **VAPID key pair** once (stored in the database). The public key
    identifies *your* server to Apple/Google.
 2. The page calls `Notification.requestPermission()`, **directly inside the click handler**
    (iOS ignores it otherwise), then `pushManager.subscribe({ applicationServerKey })`.
 3. The browser returns a **subscription** (a secret URL at Apple's push service plus
-   encryption keys). The page POSTs it to the API, which stores it (`data/push-devices.json`).
+   encryption keys). The page POSTs it to the API, which stores it in the database.
 4. When a reminder is due, the API encrypts the message and POSTs it to that URL. Apple
    wakes the phone, which wakes **`public/sw.js`**, which calls `showNotification`.
 
@@ -380,66 +400,60 @@ does nothing else (no offline caching), which keeps it simple and avoids stale-c
 ROSE into its own window with an icon. (On iPhone, web push only works for apps added to
 the Home Screen.)
 
-**Closing ROSE when the last tab closes (`src/lifetime/`).** A browser cannot reliably tell
-a server "I am closing" (the page may be killed first). So ROSE flips it around:
+The scheduler only rings if the API is running. On Render's free plan a service sleeps
+after 15 minutes without traffic, so cron-job.org calls `/health` every 10 minutes
+(section 15).
 
-1. Every open tab holds one long-lived request, `GET /api/system/presence`. The API answers
-   with a **Server-Sent Events** stream and never finishes it.
-2. The API counts the open streams (`PresenceTracker`). When a tab closes, the browser drops
-   the connection and the count goes down. No goodbye message is needed.
-3. A `BackgroundService` (`ShutdownWatchdog`) sees the count at 0, waits 20 seconds (a page
-   refresh reconnects within that time), then calls `StopApplication()`.
-4. `scripts/dev.mjs` notices that the API process exited and stops Vite, so the terminal
-   window closes too.
+## 15. Shipping ROSE: Docker, Render and a PWA
 
-The power button does the same thing on purpose: `POST /api/system/shutdown`. It needs an
-`X-Rose-Client` header, and a plain link or form from another website cannot add custom
-headers. That blocks a cheap *CSRF* trick where some other page shuts ROSE down.
-`keepPresence()` in `lifetime/system.ts` reconnects after 3 seconds if the stream breaks.
-That is an `async` loop stopped by an `AbortSignal`, the standard way to cancel `fetch`.
+ROSE used to be a Windows exe. Now it is one website, so it works on any laptop or phone
+with nothing to copy. The pieces (files are in the API repo):
 
-## 15. Packaging: one ROSE.exe for another laptop
-
-`package-rose.cmd` (= `npm run package`, `scripts/package.mjs`) turns the two repos into a
-single **ROSE.exe** that runs on a Windows laptop with nothing installed.
-
-| Step | Where | What happens |
+| Piece | File | Job |
 | --- | --- | --- |
-| 1. Build the UI | `npm run build` | Vite writes the static site to `dist/` (HTML, JS, CSS, fonts) |
-| 2. Publish the API | `dotnet publish ... -p:RoseUiDist=<dist>` | `Rose.Api.csproj` sees `RoseUiDist` and switches to *package mode* |
-| 3. Copy | `../ROSE/` | `ROSE.exe`, `appsettings.json`, your token file and your data |
+| Docker image | `Dockerfile` | Builds the UI and the API and packs both into one container |
+| Hosting | `render.yaml` | Render *Blueprint*: a free Docker web service in Singapore |
+| Local database | `docker-compose.yml` | The same Postgres version on your PC (port 5433) |
+| CI/CD | `.github/workflows/ci.yml` (both repos) | Tests on every push; `main` deploys |
+| Keep awake | cron-job.org | `GET /health` every 10 minutes |
+| Backup | `ops/backup/rose-backup.yml` | Weekly encrypted `pg_dump` into a private repo |
 
-**Package mode** (the `PropertyGroup Condition="'$(RoseUiDist)' != ''"` in `Rose.Api.csproj`):
+**A multi-stage Dockerfile.** Each `FROM` starts a fresh stage; only the last one becomes
+the image.
 
-- `PublishSingleFile` + `SelfContained`: the .NET runtime, ASP.NET Core and every
-  DLL are bundled into one compressed file (about 55 MB). No .NET install needed.
-- `OutputType=WinExe`: no console window.
-- `EmbeddedResource ... Link="wwwroot\..."` with `GenerateEmbeddedFilesManifest`: the
-  React build is stored *inside* the exe. `ManifestEmbeddedFileProvider` serves it like a
-  folder, so `UseStaticFiles` does not know the difference.
-- Normal builds and the tests never set `RoseUiDist`, so none of this affects development.
+1. `node:24-alpine` downloads this repo, runs `npm ci` and `npm run build` -> `dist/`.
+2. `dotnet/sdk:9.0` restores and publishes the API (copying the `.csproj` files first, so
+   Docker can reuse the cached restore layer when only code changed).
+3. `dotnet/aspnet:9.0` (runtime only, much smaller) gets the published API plus `dist/` as
+   `wwwroot`. It runs as a non-root user, with `TZ=Asia/Manila` so "09:00" means Manila time.
 
-**At runtime** (`src/Rose.Api/Desktop/DesktopApp.cs` and `Program.cs`):
+The SDKs and node_modules never reach the final image; that is the point of multi-stage builds.
 
-1. **Same origin.** The exe serves the API *and* the pages from `http://127.0.0.1:5175`,
-   so the UI's relative `/api/...` calls just work. In development Vite's proxy does the
-   same job, which is why the React code did not change at all.
-2. **SPA fallback.** `/projects/budget` is not a file: it is a React Router route.
-   `MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html")` answers every
-   non-file, non-API address with `index.html`, and React Router takes over in the browser.
-   Unknown `/api/...` addresses still get a real 404.
-3. **Content root.** `ContentRootPath = AppContext.BaseDirectory` makes `appsettings*.json`
-   and `data\` load from the exe's folder, however the exe was started.
-4. **One copy only.** A named `Mutex` (`Local\ProjectROSE`): a second double-click sees it
-   is taken, opens a browser tab and exits.
-5. **Open the browser** once Kestrel is listening (`ApplicationStarted`).
-6. **Close itself.** Package mode always enables the auto-close from section 14.
-7. **Explain crashes.** A WinExe has no console, so a startup error (missing token, port in
-   use) is written to `rose-error.log` and opened in Notepad.
+**One origin.** The API serves the React files from `wwwroot` (`UseStaticFiles`) next to
+`/api/...`, so the UI's relative `fetch('/api/...')` calls just work. No CORS, the same way
+Vite's proxy works in development. Two details in `Program.cs`:
 
-Try it: `npm run package`, then run `..\ROSE\ROSE.exe --Desktop:OpenBrowser=false
---Urls=http://127.0.0.1:5199` and open that address yourself. Any setting can be
-overridden on the command line like this.
+- **SPA fallback.** `/projects/budget` is not a file: it is a React Router route.
+  `MapFallbackToFile("{*path:nonfile:regex(^(?!api/).*$)}", "index.html")` answers every
+  non-file, non-API address with `index.html`, and React Router takes over in the browser.
+  Unknown `/api/...` addresses still get a real 404.
+- **Caching.** Vite puts a content hash in every asset name (`index-CfnYa5gm.js`), so those
+  are cached for a year (`immutable`). `index.html` and `sw.js` are `no-cache`, so a new
+  deploy is picked up on the next visit.
+
+**Configuration without secrets in git.** ASP.NET Core reads settings from several
+places, later ones winning: `appsettings.json` -> `appsettings.Production.json` ->
+`appsettings.Local.json` -> **environment variables**. On Render the connection string and
+Supabase settings are env vars (`Supabase__Url`: `__` stands for `:`), typed once in the
+dashboard (`sync: false` in `render.yaml`).
+
+**Continuous delivery.** Push to `main` -> CI runs the tests -> Render rebuilds the image
+-> `/health` must answer before Render switches traffic to the new container. A broken
+build never replaces the running one.
+
+**The PWA.** `manifest.webmanifest` (name, icons, `display: standalone`) and a service
+worker make ROSE *installable*: Edge/Chrome show an install icon, and iPhone's *Add to
+Home Screen* gives it its own icon and window (and, on iOS, permission to receive push).
 
 ---
 
@@ -527,22 +541,70 @@ header and callback URL), so the Windows alarm window serves both reminders and 
 
 ---
 
+## 18. Cloud data: PostgreSQL, EF Core and Supabase
+
+The data used to live in an Excel file and JSON files on one PC. Now it is in a **PostgreSQL**
+database hosted by **Supabase** (free plan, Singapore). Files are in the API repo under
+`src/Rose.Infrastructure/Persistence/`.
+
+**Relational tables.** Each kind of data has a table in the `rose` schema: `accounts`,
+`payments`, `budget_lines`, `reminders`, `push_devices`, `savings_goals` + `savings_entries`,
+`habits` + `habit_days`, `app_secrets`. A savings entry points at its goal with a
+**foreign key**, and `ON DELETE CASCADE` removes the entries when the goal is deleted.
+
+**EF Core** (Entity Framework) maps C# classes to tables:
+
+- `RoseDbContext` lists the tables (`DbSet<T>`) and their keys, indexes and relations.
+  `UseSnakeCaseNamingConvention()` turns `DueAt` into the `due_at` column.
+- **Migrations** are C# files that create or change the schema
+  (`dotnet ef migrations add <Name>`). The API applies pending ones on startup
+  (`RoseDatabase.InitializeAsync`), so a deploy upgrades the database by itself.
+- **Clean architecture.** The services in `Rose.Application` only know `IRepository<T>`, an
+  interface. `Rose.Infrastructure` implements it with EF Core. The unit tests use an
+  in-memory fake instead, so they need no database.
+
+**Row-level security (RLS).** Supabase also exposes every table through a public REST API.
+On startup ROSE turns RLS on for every `rose` table *without* any policy, which means
+"nobody may read this through that API". Only ROSE's own server connection (the table
+owner) can.
+
+**Connection pooling.** Render's free plan only speaks IPv4, so ROSE connects through
+Supabase's **session pooler** (`...pooler.supabase.com:5432`, user `postgres.<ref>`).
+`RoseDatabase` also retries the first connection a few times, because a cloud database can
+drop a connection while it wakes up.
+
+**Testing against a real database.** The integration tests start a throw-away Postgres in
+Docker (*Testcontainers*), give every test class its own empty database, and run the whole
+API against it. The same migrations, the same SQL: no surprises in production.
+
+**Backups.** A GitHub Actions workflow in a private repo runs `pg_dump --schema=rose` every
+Sunday, encrypts the dump with `gpg` (AES-256, a passphrase only you know) and commits it,
+keeping the newest 12. *Download* in the Payment Tracker still gives you an Excel copy anytime.
+
+**Why one container is enough.** The API caches each list in memory and writes every
+change straight through to the database. That is safe because Render's free plan runs
+exactly one instance. With two instances each would have its own cache, and you would
+read from the database every time instead.
+
+---
+
 ## Exercises (easy → harder)
 
 1. Change the hub greeting text in `ProjectsHubPage.tsx`.
-2. Add a "Show token" eye toggle to the login field (`useState<boolean>`).
+2. Add a "Remember me" checkbox to the login page: when unticked, sign out when the
+   browser closes (hint: compare `localStorage` and `sessionStorage`).
 3. Add a second Retro theme, e.g. amber-on-black terminal (see section 10).
 4. Write a test for `formatCompactMoney` edge cases (negative numbers, zero).
 5. Add a search box to `PaymentsTable` using `useDebouncedValue`.
 6. Build a tiny "Notes" project that stores notes in `localStorage` and plug it
    into the hub (section 13). Write one component test for it.
-7. Keep the session in an httpOnly cookie instead of `localStorage` (section 12; the API
-   needs a small change too).
+7. Add a "Forgot password?" link that calls `supabase.auth.resetPasswordForEmail()`
+   (section 12; Supabase sends the email).
 8. Add a "yearly" repeat rule: first in the API's reminder rules (write the xUnit tests
    first), then in `REPEAT_RULES` / `describeRepeat` in `reminders/model.ts` and the form
    (section 14).
-9. Give ROSE.exe an icon: add an `.ico` and `<ApplicationIcon>` to the package-mode
-   `PropertyGroup` in `Rose.Api.csproj` (section 15).
+9. Add a `notes` column to `savings_goals`: change the row class, run
+   `dotnet ef migrations add AddGoalNotes`, and show the notes on the card (sections 15, 18).
 10. Savings: add a "Pause" flag to a goal so it is left out of the *Behind* count
     (API rule + test first, then the card; section 16).
 11. Habits: show "Skipped" days (e.g. sick days) that do not break a streak. Start with a

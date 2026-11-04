@@ -51,7 +51,7 @@ export default function ReportPage() {
         <section className="card state-box">
           <strong className="display">Nothing to chart yet</strong>
           <p className="muted">
-            This report builds itself from the instalment plans in your workbook. Add a title and the charts will appear
+            This report builds itself from your instalment plans. Add a title and the charts will appear
             here.
           </p>
           <div className="button-row">

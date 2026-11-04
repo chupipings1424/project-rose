@@ -1,8 +1,8 @@
 /**
  * The app used to be called "Project Febvy" and saved settings under `febvy.*`.
  * This copies those settings to the new `rose.*` keys once, so a rename doesn't
- * reset your theme or currency. The old login session is deliberately *not*
- * carried over: the access token changed, so everyone signs in again.
+ * reset your theme or currency. Old login sessions are deliberately *not*
+ * carried over: everyone signs in again.
  */
 export const LEGACY_KEYS: Readonly<Record<string, string | null>> = {
   'febvy.theme': 'rose.theme',
@@ -11,7 +11,7 @@ export const LEGACY_KEYS: Readonly<Record<string, string | null>> = {
   // The login animation (and its sound toggle) was removed.
   'febvy.gate.muted': null,
   'rose.gate.muted': null,
-  // Logins used to be kept in localStorage for 12 hours; now they live in sessionStorage.
+  // Old token logins (12 hours). Logins are now Supabase accounts, remembered under rose.login.
   'rose.session': null,
 }
 

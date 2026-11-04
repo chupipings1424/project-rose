@@ -114,8 +114,8 @@ export default function HabitsApp() {
         <h2 className="section-title">New habit</h2>
         <HabitForm submitLabel="Add habit" onSave={create} />
         <p className="muted small hab-note">
-          Habits with a nudge time pop up on this PC if they aren&apos;t done yet. To get them on your phone too,
-          turn on notifications in <Link to={REMINDERS_BASE}>Reminders</Link>.
+          Habits with a nudge time send a push notification if they aren&apos;t done yet. Turn on notifications
+          on each device in <Link to={REMINDERS_BASE}>Reminders</Link>.
         </p>
       </section>
 
