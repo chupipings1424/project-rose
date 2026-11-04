@@ -307,7 +307,10 @@ h3 {
 .bg-scene {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  /* Below everything: with z-index 0, iOS Safari (home-screen app) could paint this composited
+     layer over plain page text, so headings looked like an empty gap. */
+  z-index: -1;
+  isolation: isolate;
   overflow: hidden;
   pointer-events: none;
   background: radial-gradient(ellipse at top, var(--bg-2), var(--bg) 70%);

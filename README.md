@@ -48,6 +48,8 @@ reminders, savings goals and habits.
   Add someone with their email and a generated temporary password, then send them the
   password privately. **Reset password** gives a new temporary one; **Remove** deletes their
   login and all their data.
+- **Another admin**: add them on **Users** first, then add their email to the API's
+  `Access__AdminEmails__1` (`__2`, ...) setting on Render.
 - **New users** sign in with the temporary password and must choose their own before
   anything else. Anyone can change theirs later with **Password** in the top bar.
 - **Logging out** also turns off notifications on that device, so the next person signing
