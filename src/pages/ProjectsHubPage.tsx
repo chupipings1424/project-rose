@@ -74,6 +74,9 @@ export default function ProjectsHubPage() {
           <p className="eyebrow">{now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           <h1 className="display">{greeting(now.getHours())}</h1>
           <p className="muted">Select a project to launch.</p>
+          <Link to="/today" className="btn ghost hub-today">
+            What&apos;s on today →
+          </Link>
         </div>
         <div className="hub-clock" aria-label="Current time">
           {now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}

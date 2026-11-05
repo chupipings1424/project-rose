@@ -11,6 +11,7 @@
  */
 import { clearSession } from '../auth/session'
 import { accessToken } from '../auth/supabase'
+import { isOffline, noteResponse, VIEW_ONLY_MESSAGE } from '../lib/offline'
 
 /** Fired on `window` when the API rejects our session; AuthProvider listens and logs out. */
 export const UNAUTHORIZED_EVENT = 'rose:unauthorized'
@@ -42,6 +43,10 @@ export function errorMessage(body: unknown): string | undefined {
 
 /** `fetch` plus the access token. Throws ApiError when offline or logged out. */
 export async function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  // Offline mode is view only: don't even try to save.
+  const method = (init.method ?? 'GET').toUpperCase()
+  if (method !== 'GET' && isOffline()) throw new ApiError(VIEW_ONLY_MESSAGE, 0)
+
   const headers = new Headers(init.headers)
   const token = await accessToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
@@ -54,6 +59,7 @@ export async function apiFetch(url: string, init: RequestInit = {}): Promise<Res
   } catch {
     throw new ApiError(OFFLINE_MESSAGE, 0)
   }
+  noteResponse(response)
 
   if (response.status === 401) {
     clearSession()

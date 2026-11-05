@@ -11,6 +11,7 @@
  */
 import type { AuthError } from '@supabase/supabase-js'
 import { OFFLINE_MESSAGE, apiFetch, readJson } from '../api/http'
+import { clearOfflineData } from '../lib/offline'
 import { clearSession, newSession, saveSession, type AccountFlags, type Session } from './session'
 import { getSupabase } from './supabase'
 
@@ -105,6 +106,7 @@ export async function changePassword(newPassword: string): Promise<void> {
 /** Forgets the login here and drops the Supabase session on this device. */
 export async function logout(): Promise<void> {
   clearSession()
+  await clearOfflineData()
   try {
     await (await getSupabase()).auth.signOut({ scope: 'local' })
   } catch {

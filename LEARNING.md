@@ -610,6 +610,52 @@ read from the database every time instead.
 
 ---
 
+## 19. Today, quick add and offline mode
+
+**One screen from many sources.** `src/today/TodayPage.tsx` makes *one* request,
+`GET /api/today`, instead of four (payments, reminders, habits, budget). The server knows
+how to combine them; the page only renders. This is the "backend for frontend" idea: shape
+an endpoint around a screen when a screen needs data from many places.
+
+**Talking between unrelated components.** The (+) button lives in `AppShell`; the Today
+page is somewhere inside `<Outlet />`. After quick add saves, it calls
+`announceDataChanged()` (`lib/dataEvents.ts`), which fires a plain DOM event. Today listens
+with `useEffect` + `addEventListener` and reloads. Neither imports the other. (Context
+would also work; an event is lighter when only "something changed" is needed.)
+
+**Derived defaults instead of effects.** In `quickadd/QuickAddDialog.tsx` the amount field
+starts with the title's instalment. Rather than copying it into state with an effect, the
+state starts as `null` ("not typed yet") and the shown value is
+`amount ?? plan.per_payment`. Change the title and we reset it to `null`. No effect, no
+flicker, no stale value.
+
+**Lazy dialogs.** `lazy(() => import('../quickadd/QuickAddDialog'))` means the quick-add
+code is downloaded the first time you tap (+), not on every page load.
+
+**Reading outside state: `useSyncExternalStore`.** `lib/offline.ts` combines
+`navigator.onLine` with "did the last answer come from the saved copy?". That value lives
+outside React, so `useOffline()` uses `useSyncExternalStore(subscribe, getSnapshot)`:
+React calls `getSnapshot` and re-renders whenever `subscribe`'s callback fires (on the
+`online` / `offline` events or a change in `noteResponse`).
+
+**Service worker caching strategies** (`public/sw.js`):
+
+| Request | Strategy | Why |
+| --- | --- | --- |
+| Pages (navigation) | network first, else saved `index.html` | always the newest app; opens offline |
+| `/assets/*` | cache first | file names contain a hash, so a saved copy is never wrong |
+| `GET /api/*` | network first, else saved copy + `X-Rose-Offline` header | fresh data online, last data offline |
+| non-GET, `/api/auth/*`, downloads | not touched | writes must reach the server |
+
+The build writes `precache.json` (a tiny Vite plugin in `vite.config.ts`) listing every
+built file, so pages you have not opened yet still work offline. Privacy: the saved API
+answers are deleted on log out (`clearOfflineData`).
+
+**One guard for every write.** Instead of disabling every Save button, `apiFetch` refuses
+non-GET requests while offline with a friendly message. One place, every project covered.
+
+---
+
 ## Exercises (easy → harder)
 
 1. Change the hub greeting text in `ProjectsHubPage.tsx`.
@@ -631,3 +677,5 @@ read from the database every time instead.
     (API rule + test first, then the card; section 16).
 11. Habits: show "Skipped" days (e.g. sick days) that do not break a streak. Start with a
     failing test in `HabitRulesTests.cs`, then extend the reducer (section 17).
+12. Today: add a "Savings goals behind plan" card. Extend `TodayService` (test first),
+    then the `TodayView` type and the page (section 19).

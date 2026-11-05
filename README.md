@@ -152,6 +152,33 @@ Each report has a year picker and a Print button. **Import** reads CSV/XLSX file
 **Download** gives you everything as an Excel workbook. Shared code (the API client, layout,
 charts, import dialog) lives in `src/projects/workbook/`.
 
+**Paid payments flow into the budget automatically** (actual spending):
+
+- A payment marked **Paid** adds its amount to the Expense line with the same name as its
+  title (any group, *Loans* preferred), in the month of its date. No such line yet? One is
+  created in the **Loans** group.
+- Marking it **Unpaid** or deleting it takes exactly that amount back out (never below 0).
+  Deleting a whole title also removes its amounts from the budget.
+- Your own edits to the line are kept: each payment remembers what it added. If you delete
+  or rename the line, nothing is taken back later.
+- Payments that were already paid before this feature are added once, the first time you
+  open the budget, report, hub or Today page. Imported payments are not added (the budget
+  import carries its own amounts).
+
+## Today, quick add and offline
+
+- **Today** (top bar, or *What's on today* on the hub): payments due in the next 7 days
+  (and overdue ones), today's reminders (tap *Done*), habits (tick check habits) and how
+  much of this month's budget is left. One request: `GET /api/today`. Code: `src/today/`.
+- **Quick add (+)**, bottom-right on every page: add a payment (amount and due date come
+  from the title's plan), an expense (adds to this month of a budget line, or creates a new
+  line), or a one-off reminder. Code: `src/quickadd/`.
+- **Offline (view only)**: the service worker saves the app and every page you load. With no
+  connection ROSE still opens and shows the last saved data with an *Offline* banner; saving
+  is paused and the (+) button is hidden until you're back online. Logging out deletes the
+  saved data. Close and reopen the Home Screen app once after a deploy to pick up the new
+  version.
+
 ## Reminders (Project 03)
 
 Reminders with a date and time, optionally repeating (**daily**, **weekdays**, **weekly on
@@ -235,7 +262,11 @@ src/
   lib/format.ts         money / date helpers (formatMoney takes a currency)
   lib/migrateStorage.ts copies old febvy.* browser settings to rose.* once
   lib/serviceWorker.ts  registers public/sw.js, follows notification taps
+  lib/offline.ts        offline mode: useOffline(), view-only guard, clear saved data on log out
+  lib/dataEvents.ts     "data changed" event (quick add -> Today reloads)
   pages/                LoginPage, ChangePasswordPage, AdminUsersPage, ProjectsHubPage, NotFoundPage
+  today/                Today page + its API client (GET /api/today)
+  quickadd/             the (+) dialog: payment, expense or reminder
   projects/
     registry.ts         the list of projects shown on the hub
     workbook/           shared by the next two: API client + types, layout, charts, import
@@ -246,7 +277,7 @@ src/
     habits/             Habit Tracker page, reducer (lib/reducer.ts), heatmap, 7-day strip
   styles/global.css     design system + theme CSS variables
 public/
-  sw.js                 service worker: shows push notifications
+  sw.js                 service worker: push notifications + offline cache (app + GET /api/*)
   manifest.webmanifest  PWA manifest (name, icons, standalone)
 scripts/dev.mjs         one-command local launcher (Postgres + API + UI)
 ```

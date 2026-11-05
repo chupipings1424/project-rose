@@ -460,7 +460,7 @@ h3 {
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 2rem 1.5rem 6rem;
 }
 
 /* ---------- surfaces ---------- */
@@ -859,7 +859,7 @@ tfoot td {
 .toast-stack {
   position: fixed;
   right: 1.5rem;
-  bottom: 1.5rem;
+  bottom: calc(6rem + env(safe-area-inset-bottom));
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -1174,6 +1174,106 @@ tfoot td {
   text-transform: uppercase;
   color: var(--accent-2);
 }
+/* ---------- today ---------- */
+.today-head {
+  margin-bottom: 1.25rem;
+}
+.today-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+.today-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.today-card > .btn.link {
+  align-self: flex-start;
+  margin-top: auto;
+}
+.today-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.today-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+}
+a.today-row:hover {
+  border-color: var(--accent);
+}
+.today-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.today-budget {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.today-budget > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.today-budget strong {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+.hub-today {
+  margin-top: 0.75rem;
+}
+
+/* ---------- quick add + offline ---------- */
+.fab {
+  position: fixed;
+  right: 1.5rem;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  z-index: 50;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: none;
+  border-radius: 50%;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: var(--glow), 0 10px 30px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.fab:hover {
+  transform: scale(1.06);
+}
+.fab:active {
+  transform: scale(0.95);
+}
+.quick-kinds {
+  margin-bottom: 1rem;
+}
+.offline-banner {
+  padding: 0.4rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--bg);
+  background: var(--accent-2);
+}
+
 /* ---------- responsive ---------- */
 @media (max-width: 720px) {
   .topbar-inner {
@@ -1189,7 +1289,7 @@ tfoot td {
     min-width: 0;
   }
   .page {
-    padding: 1.25rem 0.9rem 3rem;
+    padding: 1.25rem 0.9rem 6rem;
   }
   .two-col {
     grid-template-columns: 1fr;

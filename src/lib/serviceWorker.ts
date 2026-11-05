@@ -2,14 +2,19 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 /**
- * Registers public/sw.js. Browsers only allow service workers on https:// or
+ * Registers public/sw.js (notifications + offline mode). Browsers only allow service workers on https:// or
  * localhost, so on a plain http:// LAN address this quietly does nothing.
  */
 export function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator) || !window.isSecureContext) return
-  navigator.serviceWorker.register('/sw.js').catch((error: unknown) => {
-    console.warn('ROSE: service worker registration failed', error)
-  })
+  navigator.serviceWorker
+    .register('/sw.js')
+    .then(() => navigator.serviceWorker.ready)
+    // Save this build's files for offline mode (a new deploy brings new file names).
+    .then((registration) => registration.active?.postMessage({ type: 'precache' }))
+    .catch((error: unknown) => {
+      console.warn('ROSE: service worker registration failed', error)
+    })
 }
 
 interface OpenMessage {

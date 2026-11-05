@@ -1,6 +1,23 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
+
+/**
+ * Writes dist/precache.json: every file the build produced under assets/ (minus the old
+ * .woff fonts - every phone uses the .woff2 copies). The service
+ * worker (public/sw.js) saves them so ROSE opens offline, including pages you have
+ * not visited yet (their code is split into separate files).
+ */
+function precacheManifest(): Plugin {
+  return {
+    name: 'rose-precache-manifest',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const files = Object.keys(bundle).filter((file) => file.startsWith('assets/') && !file.endsWith('.woff')).sort()
+      this.emitFile({ type: 'asset', fileName: 'precache.json', source: JSON.stringify(files) })
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -14,7 +31,7 @@ export default defineConfig(({ mode }) => {
   const proxy = { '/api': { target: apiUrl, changeOrigin: true } }
 
   return {
-    plugins: [react()],
+    plugins: [react(), precacheManifest()],
     server: { port: 5180, proxy },
     preview: { port: 5180, proxy },
     test: {

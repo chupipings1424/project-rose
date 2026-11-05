@@ -44,6 +44,8 @@ export function getSupabase(): Promise<SupabaseClient> {
 /** A valid access token for the ROSE API, or null when nobody is logged in. */
 export async function accessToken(): Promise<string | null> {
   if (!loadSession()) return null // logged out: don't even load the client
+  // Offline: refreshing the token would retry for ~30 s; the service worker answers from its saved copy anyway.
+  if (navigator.onLine === false) return null
   try {
     const { data } = await (await getSupabase()).auth.getSession() // refreshes when needed
     return data.session?.access_token ?? null
