@@ -19,6 +19,8 @@
       try {
         var saved = localStorage.getItem('rose.theme') || localStorage.getItem('febvy.theme')
         if (saved) document.documentElement.dataset.theme = saved
+        // Keep in sync with the 'modern' entries in src/theme/themes.ts.
+        if (['midnight', 'dusk', 'frost', 'paper'].indexOf(saved) >= 0) document.documentElement.dataset.themeGroup = 'modern'
       } catch (e) {}
     </script>
   </head>

@@ -131,6 +131,10 @@ and GPU.
 | Futuristic | Matrix | phosphor-green terminal glow |
 | Futuristic | Solar Flare | molten amber and plasma red |
 | Futuristic | Hologram | bright iridescent glass (light) |
+| Modern | Midnight Calm | graphite with soft indigo and teal |
+| Modern | Rose Dusk | warm plum with rose pink and gold |
+| Modern | Nordic Frost | muted slate with icy cyan and sage (easiest on the eyes) |
+| Modern | Paper Sage | warm paper with sage green and terracotta (light) |
 | Retro | Retro 8-bit | handheld-console greens, monospace type and square corners (light) |
 
 ## Currency
@@ -255,7 +259,7 @@ src/
                         session (30 days + admin / must-change-password flags),
                         AuthProvider, ProtectedRoute (+ AdminRoute)
   admin/usersApi.ts     the admin API client + temporary password generator
-  theme/                6 themes (5 futuristic + 1 retro), ThemeProvider, ThemePicker
+  theme/                10 themes (5 futuristic, 4 modern, 1 retro), ThemeProvider, ThemePicker
   currency/             display currency (? PHP default, $ USD, A$ AUD, ? EUR)
   components/           shared UI: AppShell, Modal, toasts, stat tiles, states
   hooks/                useAsync, useDebouncedValue, useNow

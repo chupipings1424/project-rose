@@ -15,11 +15,15 @@ const renderPicker = (variant?: 'grid' | 'compact') =>
 describe('ThemePicker', () => {
   afterEach(() => localStorage.clear())
 
-  it('groups the themes into Futuristic and Retro', () => {
+  it('groups the themes into Futuristic, Modern and Retro', () => {
     renderPicker()
     const futuristic = screen.getByRole('group', { name: 'Futuristic' })
     for (const name of ['Neon', 'Deep Space', 'Matrix', 'Solar Flare', 'Hologram']) {
       expect(within(futuristic).getByRole('radio', { name: new RegExp(name) })).toBeInTheDocument()
+    }
+    const modern = screen.getByRole('group', { name: 'Modern' })
+    for (const name of ['Midnight Calm', 'Rose Dusk', 'Nordic Frost', 'Paper Sage']) {
+      expect(within(modern).getByRole('radio', { name: new RegExp(name) })).toBeInTheDocument()
     }
     const retro = screen.getByRole('group', { name: 'Retro' })
     expect(within(retro).getByRole('radio', { name: /Retro 8-bit/ })).toBeInTheDocument()
@@ -36,7 +40,14 @@ describe('ThemePicker', () => {
   it('uses option groups in the compact dropdown', () => {
     const { container } = renderPicker('compact')
     const labels = [...container.querySelectorAll('optgroup')].map((group) => group.label)
-    expect(labels).toEqual(['Futuristic', 'Retro'])
+    expect(labels).toEqual(['Futuristic', 'Modern', 'Retro'])
     expect(screen.getByRole('option', { name: 'Retro 8-bit' })).toBeInTheDocument()
+  })
+
+  it('marks the theme group on <html> so the Modern look applies', async () => {
+    renderPicker()
+    await userEvent.click(screen.getByRole('radio', { name: /Nordic Frost/ }))
+    expect(document.documentElement.dataset.theme).toBe('frost')
+    expect(document.documentElement.dataset.themeGroup).toBe('modern')
   })
 })

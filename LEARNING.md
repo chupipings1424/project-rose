@@ -240,8 +240,12 @@ loads, which avoids a flash of the wrong theme.
 `[data-theme='yourid']` block in `global.css`. TypeScript will tell you if you
 missed a field.
 
-The picker groups themes with a `group` field (`'futuristic' | 'retro'`), and the
-**Retro 8-bit** theme shows two more tricks:
+The picker groups themes with a `group` field (`'futuristic' | 'modern' | 'retro'`).
+`ThemeProvider` also writes the group to `<html data-theme-group>`, so one CSS rule can
+style a whole group: the **Modern** themes hide the grid and scanlines, use plain Inter
+headings and soft shadows instead of neon glow (`[data-theme-group='modern'] ...`).
+
+The **Retro 8-bit** theme shows two more tricks:
 
 - **Specificity.** `[data-theme='x']` and `:root` have the *same* specificity, so
   whichever comes later in the file wins. To override base variables such as

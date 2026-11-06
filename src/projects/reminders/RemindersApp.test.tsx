@@ -120,7 +120,9 @@ describe('RemindersApp', () => {
     await userEvent.type(screen.getByLabelText(/Remind me to/), 'Gym')
     await userEvent.selectOptions(screen.getByLabelText('Repeat'), 'weekly')
     const group = screen.getByRole('group', { name: 'Weekdays' })
-    await userEvent.click(within(group).getByRole('button', { name: 'Fri' }))
+    // Weekly pre-selects the due date's weekday; on a Friday a click would turn Fri off again.
+    const friday = within(group).getByRole('button', { name: 'Fri' })
+    if (friday.getAttribute('aria-pressed') !== 'true') await userEvent.click(friday)
     await userEvent.click(screen.getByRole('button', { name: 'Add reminder' }))
 
     await screen.findByText('Gym')

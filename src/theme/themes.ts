@@ -1,4 +1,4 @@
-export type ThemeGroup = 'futuristic' | 'retro'
+export type ThemeGroup = 'futuristic' | 'modern' | 'retro'
 
 export interface ThemeDefinition {
   id: string
@@ -55,6 +55,38 @@ export const THEMES = [
     swatch: ['#eef2ff', '#7c3aed', '#0891b2'],
   },
   {
+    id: 'midnight',
+    group: 'modern',
+    name: 'Midnight Calm',
+    description: 'Graphite with soft indigo and teal',
+    mode: 'dark',
+    swatch: ['#0f1115', '#7c8cff', '#4fd1c5'],
+  },
+  {
+    id: 'dusk',
+    group: 'modern',
+    name: 'Rose Dusk',
+    description: 'Warm plum with rose pink and gold',
+    mode: 'dark',
+    swatch: ['#1c1420', '#f28ab2', '#f6c177'],
+  },
+  {
+    id: 'frost',
+    group: 'modern',
+    name: 'Nordic Frost',
+    description: 'Muted slate with icy cyan and sage',
+    mode: 'dark',
+    swatch: ['#232a35', '#88c0d0', '#a3be8c'],
+  },
+  {
+    id: 'paper',
+    group: 'modern',
+    name: 'Paper Sage',
+    description: 'Warm paper with sage and terracotta',
+    mode: 'light',
+    swatch: ['#f7f5f0', '#4f7c6b', '#c0794f'],
+  },
+  {
     id: 'retro',
     group: 'retro',
     name: 'Retro 8-bit',
@@ -66,6 +98,7 @@ export const THEMES = [
 
 export const THEME_GROUPS: readonly { id: ThemeGroup; label: string }[] = [
   { id: 'futuristic', label: 'Futuristic' },
+  { id: 'modern', label: 'Modern' },
   { id: 'retro', label: 'Retro' },
 ]
 
