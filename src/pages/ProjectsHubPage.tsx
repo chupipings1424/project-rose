@@ -3,6 +3,7 @@ import { useCurrency } from '../currency/useCurrency'
 import { useAsync } from '../hooks/useAsync'
 import { useNow } from '../hooks/useNow'
 import { PROJECTS, type ProjectInfo, type ProjectStat } from '../projects/registry'
+import { useAutoRefresh } from '../hooks/useAutoRefresh'
 
 function greeting(hour: number): string {
   if (hour < 12) return 'Good morning'
@@ -16,8 +17,10 @@ function ProjectStats({ project }: { project: ProjectInfo }) {
   // Money is formatted at render time, so switching currency updates the card without reloading.
   const display = (stat: ProjectStat) => ('amount' in stat ? compactMoney(stat.amount) : stat.value)
 
+  useAutoRefresh(stats.reload)
+
   if (!project.loadStats) return null
-  if (stats.loading) return <p className="muted small">Linking…</p>
+  if (stats.loading && !stats.data) return <p className="muted small">Linking…</p>
   if (stats.error) return <p className="status-line offline">● Offline — cannot reach ROSE</p>
 
   return (

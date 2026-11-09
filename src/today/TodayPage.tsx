@@ -1,16 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../components/States'
 import { useToast } from '../components/toast/useToast'
 import { useCurrency } from '../currency/useCurrency'
 import { useAsync } from '../hooks/useAsync'
-import { DATA_CHANGED_EVENT } from '../lib/dataEvents'
 import { longDate } from '../lib/format'
 import { useOffline } from '../lib/offline'
 import { habitsApi } from '../projects/habits/api/client'
 import { remindersApi } from '../projects/reminders/api/client'
 import { friendlyTime } from '../projects/reminders/lib/time'
+import { workbookApi } from '../projects/workbook/api/client'
 import { dueLabel, todayApi, type TodayHabit, type TodayPayment, type TodayReminder, type TodayView } from './api'
+import { useAutoRefresh } from '../hooks/useAutoRefresh'
 
 const trackerLink = (title: string) => `/projects/payment-tracker?title=${encodeURIComponent(title)}`
 
@@ -42,7 +43,7 @@ function BudgetCard({ budget }: { budget: TodayView['budget'] }) {
   )
 }
 
-function PaymentsCard({ payments }: { payments: TodayPayment[] }) {
+function PaymentsCard({ payments, busy, disabled, run }: { payments: TodayPayment[] } & ActionProps) {
   const { money } = useCurrency()
   return (
     <section className="card today-card" aria-labelledby="today-payments">
@@ -54,16 +55,25 @@ function PaymentsCard({ payments }: { payments: TodayPayment[] }) {
       ) : (
         <ul className="today-list">
           {payments.map((payment) => (
-            <li key={payment.id}>
-              <Link to={trackerLink(payment.title)} className="today-row">
-                <span className="today-main">
-                  <strong>{payment.title}</strong>
-                  <span className="muted small">{money(payment.amount)}</span>
-                </span>
-                <span className={`badge ${payment.days_until_due < 0 ? 'badge-overdue' : 'badge-due'}`}>
-                  {dueLabel(payment.days_until_due)}
+            <li key={payment.id} className="today-row">
+              <Link to={trackerLink(payment.title)} className="today-main today-link">
+                <strong>{payment.title}</strong>
+                <span className="muted small">
+                  {money(payment.amount)} ·{' '}
+                  <span className={payment.days_until_due < 0 ? 'tone-text-danger' : ''}>{dueLabel(payment.days_until_due)}</span>
                 </span>
               </Link>
+              <button
+                type="button"
+                className="btn ghost"
+                aria-label={`Mark ${payment.title} paid`}
+                disabled={disabled || busy === payment.id}
+                onClick={() =>
+                  run(payment.id, () => workbookApi.setPaymentStatus(payment.id, 'Paid', payment.title), `${payment.title} marked paid`)
+                }
+              >
+                Pay
+              </button>
             </li>
           ))}
         </ul>
@@ -175,11 +185,7 @@ export default function TodayPage() {
   const offline = useOffline()
   const [busy, setBusy] = useState<string | null>(null)
 
-  // Quick add (or anything else) changed data: show it.
-  useEffect(() => {
-    window.addEventListener(DATA_CHANGED_EVENT, reload)
-    return () => window.removeEventListener(DATA_CHANGED_EVENT, reload)
-  }, [reload])
+  useAutoRefresh(reload)
 
   function run(key: string, action: () => Promise<unknown>, done: string) {
     setBusy(key)
@@ -206,7 +212,7 @@ export default function TodayPage() {
         <h1 className="display">Today</h1>
       </header>
       <div className="today-grid">
-        <PaymentsCard payments={view.payments} />
+        <PaymentsCard payments={view.payments} {...actions} />
         <RemindersCard reminders={view.reminders} {...actions} />
         <HabitsCard habits={view.habits} date={view.date} {...actions} />
         <BudgetCard budget={view.budget} />

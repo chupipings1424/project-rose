@@ -172,16 +172,24 @@ charts, import dialog) lives in `src/projects/workbook/`.
 ## Today, quick add and offline
 
 - **Today** (top bar, or *What's on today* on the hub): payments due in the next 7 days
-  (and overdue ones), today's reminders (tap *Done*), habits (tick check habits) and how
-  much of this month's budget is left. One request: `GET /api/today`. Code: `src/today/`.
+  (and overdue ones; tap *Pay* to mark one paid), today's reminders (tap *Done*), habits
+  (tick check habits) and how much of this month's budget is left. One request:
+  `GET /api/today`. Code: `src/today/`.
 - **Quick add (+)**, bottom-right on every page: add a payment (amount and due date come
   from the title's plan), an expense (adds to this month of a budget line, or creates a new
-  line), or a one-off reminder. Code: `src/quickadd/`.
+  line), or a one-off reminder. It remembers the last tab, title and expense line;
+  *Save & add another* keeps it open for the next entry. Adding an expense with the same
+  name as a payment title shows a warning (paid payments are already in the budget).
+  Code: `src/quickadd/`.
+- **Always fresh**: every page reloads its data after a quick add save and whenever you come
+  back to the app (`hooks/useAutoRefresh.ts`).
+- **Update banner**: after a deploy, an open app shows *A new version of ROSE is ready - tap
+  to reload* (it compares the `version.json` written by each build; checked when you return
+  to the app and every 30 minutes).
 - **Offline (view only)**: the service worker saves the app and every page you load. With no
   connection ROSE still opens and shows the last saved data with an *Offline* banner; saving
   is paused and the (+) button is hidden until you're back online. Logging out deletes the
-  saved data. Close and reopen the Home Screen app once after a deploy to pick up the new
-  version.
+  saved data.
 
 ## Reminders (Project 03)
 
@@ -262,12 +270,13 @@ src/
   theme/                10 themes (5 futuristic, 4 modern, 1 retro), ThemeProvider, ThemePicker
   currency/             display currency (? PHP default, $ USD, A$ AUD, ? EUR)
   components/           shared UI: AppShell, Modal, toasts, stat tiles, states
-  hooks/                useAsync, useDebouncedValue, useNow
+  hooks/                useAsync, useAutoRefresh, useDebouncedValue, useNow
   lib/format.ts         money / date helpers (formatMoney takes a currency)
   lib/migrateStorage.ts copies old febvy.* browser settings to rose.* once
   lib/serviceWorker.ts  registers public/sw.js, follows notification taps
   lib/offline.ts        offline mode: useOffline(), view-only guard, clear saved data on log out
-  lib/dataEvents.ts     "data changed" event (quick add -> Today reloads)
+  lib/dataEvents.ts     "data changed" event (quick add -> every page reloads)
+  lib/updates.ts        "new version deployed?" check (version.json) for the update banner
   pages/                LoginPage, ChangePasswordPage, AdminUsersPage, ProjectsHubPage, NotFoundPage
   today/                Today page + its API client (GET /api/today)
   quickadd/             the (+) dialog: payment, expense or reminder

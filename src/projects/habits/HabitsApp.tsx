@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
@@ -12,6 +12,7 @@ import { HabitCard } from './components/HabitCard'
 import { HabitForm } from './components/HabitForm'
 import { habitsReducer, initialHabitsState } from './lib/reducer'
 import type { Habit, HabitInput } from './model'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import './habits.css'
 
 export default function HabitsApp() {
@@ -22,6 +23,8 @@ export default function HabitsApp() {
   const [deleting, setDeleting] = useState<Habit | null>(null)
   const { habits, error } = state
   const today = todayIso()
+  const reload = useCallback(() => setVersion((v) => v + 1), [])
+  useAutoRefresh(reload)
 
   useEffect(() => {
     let cancelled = false

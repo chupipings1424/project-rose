@@ -19,6 +19,20 @@ function precacheManifest(): Plugin {
   }
 }
 
+/**
+ * Writes dist/version.json with this build's id. An open app compares it with the id it was
+ * built with (src/lib/updates.ts) and offers a reload after a new deploy.
+ */
+function buildVersion(id: string): Plugin {
+  return {
+    name: 'rose-build-version',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ id }) })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // loadEnv reads .env files. The '' prefix means "give me every variable",
@@ -30,8 +44,12 @@ export default defineConfig(({ mode }) => {
   // ROSE API (the .NET backend in project-rose-api). Same origin = no CORS.
   const proxy = { '/api': { target: apiUrl, changeOrigin: true } }
 
+  // Unique per build, so a deployed app can tell it is out of date.
+  const buildId = Date.now().toString(36)
+
   return {
-    plugins: [react(), precacheManifest()],
+    plugins: [react(), precacheManifest(), buildVersion(buildId)],
+    define: { __BUILD_ID__: JSON.stringify(buildId) },
     server: { port: 5180, proxy },
     preview: { port: 5180, proxy },
     test: {

@@ -12,10 +12,13 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const month = new Date().getMonth()
 const year = new Date().getFullYear()
 
+// What the server has for Groceries this month; PATCHes change it, like the real API.
+let groceries = 100
+
 const budget = () => {
   const amounts = Array<number>(12).fill(0)
-  amounts[month] = 100
-  const line = { id: 'l1', year, section: 'Expense', group: 'Food', item: 'Groceries', amounts, total: 100, notes: '' }
+  amounts[month] = groceries
+  const line = { id: 'l1', year, section: 'Expense', group: 'Food', item: 'Groceries', amounts, total: groceries, notes: '' }
   return {
     year,
     months: MONTHS,
@@ -45,6 +48,10 @@ describe('QuickAddDialog', () => {
     if (url === '/api/payment-tracker/payments' && method === 'POST') return json({ id: 'p9', settled: true, summary: {} }, 201)
     if (url === `/api/payment-tracker/budget?year=${year}`) return json(budget())
     if (url === '/api/payment-tracker/budget/lines' && method === 'POST') return json({ id: 'l2', budget: budget() }, 201)
+    if (url === '/api/payment-tracker/budget/lines/l1' && method === 'PATCH') {
+      groceries = Number(JSON.parse(String(init?.body)).value)
+      return json({ ok: true, budget: budget() })
+    }
     if (url.startsWith('/api/payment-tracker/budget/lines/') && method === 'PATCH') return json({ ok: true, budget: budget() })
     if (url === '/api/reminders/items' && method === 'POST') {
       const body = JSON.parse(String(init?.body))
@@ -65,6 +72,7 @@ describe('QuickAddDialog', () => {
     }
   })
   beforeEach(() => {
+    groceries = 100
     vi.stubGlobal('fetch', fetchMock)
     window.addEventListener(DATA_CHANGED_EVENT, changed)
   })
@@ -130,6 +138,73 @@ describe('QuickAddDialog', () => {
 
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(sent(calls('POST', '/api/reminders/items')[0])).toMatchObject({ text: 'Pay rent', repeat: 'none' })
+  })
+
+  it('"Save & add another" keeps the dialog open with the plan filled in again', async () => {
+    renderDialog()
+    const amount = await screen.findByLabelText('Amount')
+    await waitFor(() => expect(amount).toHaveValue(500))
+    await userEvent.clear(amount)
+    await userEvent.type(amount, '650')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save & add another' }))
+
+    await waitFor(() => expect(calls('POST', '/api/payment-tracker/payments')).toHaveLength(1))
+    expect(sent(calls('POST', '/api/payment-tracker/payments')[0])).toMatchObject({ amount: '650' })
+    await waitFor(() => expect(screen.getByLabelText('Amount')).toHaveValue(500))
+    // The next due date moved on, so the plan is fetched again.
+    expect(calls('GET', '/api/payment-tracker/summary/Car%20Loan')).toHaveLength(2)
+    expect(changed).toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('adds expenses in a row on top of the fresh total', async () => {
+    renderDialog()
+    await userEvent.click(screen.getByRole('button', { name: 'Expense' }))
+    await userEvent.type(await screen.findByLabelText(/Amount spent/), '50')
+    await userEvent.click(screen.getByRole('button', { name: 'Save & add another' }))
+    await waitFor(() => expect(screen.getByLabelText(/Amount spent/)).toHaveValue(null))
+
+    await userEvent.type(screen.getByLabelText(/Amount spent/), '25')
+    await userEvent.click(screen.getByRole('button', { name: 'Add expense' }))
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+    // 100 + 50, then 150 + 25: the second add used the reloaded budget, not the old 100.
+    expect(calls('PATCH', '/api/payment-tracker/budget/lines/l1').map(sent)).toEqual([
+      { month, value: '150', year },
+      { month, value: '175', year },
+    ])
+  })
+
+  it('remembers the last tab and payment title', async () => {
+    const first = renderDialog()
+    await waitFor(() => expect(screen.getByLabelText('Amount')).toHaveValue(500))
+    await userEvent.click(screen.getByRole('button', { name: 'Save payment' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+    await userEvent.click(screen.getByRole('button', { name: 'Reminder' }))
+    first.unmount()
+
+    renderDialog()
+    expect(screen.getByRole('button', { name: 'Reminder' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Payment' }))
+    expect(await screen.findByLabelText('Title')).toHaveValue('Car Loan')
+  })
+
+  it('falls back to the first title when the remembered one is gone', async () => {
+    localStorage.setItem('rose.quickadd', JSON.stringify({ kind: 'Payment', title: 'Deleted Loan' }))
+    renderDialog()
+    expect(await screen.findByLabelText('Title')).toHaveValue('Car Loan')
+  })
+
+  it('warns when an expense is also a payment title (it would count twice)', async () => {
+    renderDialog()
+    await userEvent.click(screen.getByRole('button', { name: 'Expense' }))
+    await userEvent.selectOptions(await screen.findByLabelText('Expense'), '+ New item…')
+    expect(screen.queryByText(/counts it twice/)).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByLabelText('Item'), 'car loan')
+
+    expect(await screen.findByText(/counts it twice/)).toBeInTheDocument()
   })
 
   it('is view only while offline', async () => {

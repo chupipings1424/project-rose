@@ -621,11 +621,32 @@ read from the database every time instead.
 how to combine them; the page only renders. This is the "backend for frontend" idea: shape
 an endpoint around a screen when a screen needs data from many places.
 
-**Talking between unrelated components.** The (+) button lives in `AppShell`; the Today
+**Talking between unrelated components.** The (+) button lives in `AppShell`; the current
 page is somewhere inside `<Outlet />`. After quick add saves, it calls
-`announceDataChanged()` (`lib/dataEvents.ts`), which fires a plain DOM event. Today listens
-with `useEffect` + `addEventListener` and reloads. Neither imports the other. (Context
-would also work; an event is lighter when only "something changed" is needed.)
+`announceDataChanged()` (`lib/dataEvents.ts`), which fires a plain DOM event. Every page
+listens through one custom hook, `useAutoRefresh(reload)` (`hooks/useAutoRefresh.ts`), and
+reloads. Neither side imports the other. (Context would also work; an event is lighter when
+only "something changed" is needed.) The same hook also reloads on `visibilitychange`, so
+a home-screen app that sat in the background all day shows today's numbers when you open it.
+Pages only show a spinner when there is *no* data yet (`loading && !data`), so these
+background reloads never flash.
+
+**Refs for "which button was pressed".** Quick add has two submit buttons: *Save* and
+*Save & add another*. Each sets `again.current` (a `useRef`) in its `onClick`, and the shared
+`save()` reads it after the request. A ref, not state, because nothing on screen depends on
+it, so changing it should not re-render. After "add another" the form resets and reloads
+what it shows (the next due date, the new budget total): without that reload the second
+expense would be added on top of the *old* total.
+
+**Remembering choices.** `loadPrefs()` / `savePrefs()` keep the last tab, title and expense
+line in `localStorage` (wrapped in `try`, because storage can be full or blocked). A saved
+title can be stale (renamed, deleted), so the form checks it still exists before using it.
+
+**Knowing a new version is out.** A home-screen app may stay open for days. `vite.config.ts`
+`define`s `__BUILD_ID__` (a new value every build; declared for TypeScript in
+`src/build-env.d.ts`) and writes the same id to `dist/version.json`. `lib/updates.ts`
+fetches `/version.json` with `cache: 'no-store'` and, if the id differs from the one baked
+into the running code, `UpdateBanner` offers a reload.
 
 **Derived defaults instead of effects.** In `quickadd/QuickAddDialog.tsx` the amount field
 starts with the title's instalment. Rather than copying it into state with an effect, the
@@ -683,3 +704,5 @@ non-GET requests while offline with a friendly message. One place, every project
     failing test in `HabitRulesTests.cs`, then extend the reducer (section 17).
 12. Today: add a "Savings goals behind plan" card. Extend `TodayService` (test first),
     then the `TodayView` type and the page (section 19).
+13. Quick add: add a fourth tab, "Habit", that ticks a habit for today. Reuse `useSaver` and
+    write the test first in `QuickAddDialog.test.tsx` (section 19).

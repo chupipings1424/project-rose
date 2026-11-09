@@ -12,13 +12,13 @@ const json = (body: unknown, status = 200) =>
   Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }))
 
 /** What GET /api/today sends (snake_case). */
-const todayView = (habitDone = false) => ({
+const todayView = (habitDone = false, paid: string[] = []) => ({
   date: '2026-11-05',
   budget: { year: 2026, month: 10, month_name: 'Nov', revenue: 50000, expenses: 12000, left: 38000 },
   payments: [
     { id: 'p1', title: 'Car Loan', amount: 500, due_date: '2026-11-03', days_until_due: -2 },
     { id: 'p2', title: 'Phone', amount: 80, due_date: '2026-11-08', days_until_due: 3 },
-  ],
+  ].filter((p) => !paid.includes(p.id)),
   reminders: [{ id: 'r1', text: 'Call mom', due_at: '2026-11-05T10:00:00.000Z', ringing: true, overdue: true }],
   habits: [
     { id: 'h1', name: 'Read', icon: '', kind: 'check', done: habitDone ? 1 : 0, target: 1, unit: '', done_today: habitDone },
@@ -38,10 +38,15 @@ describe('dueLabel', () => {
 
 describe('TodayPage', () => {
   let habitDone = false
+  let paid: string[] = []
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     const method = init?.method ?? 'GET'
-    if (url === '/api/today') return json(todayView(habitDone))
+    if (url === '/api/today') return json(todayView(habitDone, paid))
+    if (url === '/api/payment-tracker/payments/p1' && method === 'PATCH') {
+      paid = ['p1']
+      return json({ ok: true, summary: {} })
+    }
     if (url.startsWith('/api/habits/items/h1/days/') && method === 'PUT') {
       habitDone = true
       return json({ id: 'h1', name: 'Read', icon: '', kind: 'check', target: 1, unit: '', remind_at: null, today: 1, done_today: true, current_streak: 1, best_streak: 1, log: {}, created_at: '', updated_at: '' })
@@ -51,6 +56,7 @@ describe('TodayPage', () => {
 
   beforeEach(() => {
     habitDone = false
+    paid = []
     vi.stubGlobal('fetch', fetchMock)
   })
   afterEach(() => {
@@ -94,6 +100,17 @@ describe('TodayPage', () => {
     const put = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')!
     expect(String(put[0])).toBe('/api/habits/items/h1/days/2026-11-05')
     expect(JSON.parse(String(put[1]?.body))).toEqual({ value: 1 })
+  })
+
+  it('marks a due payment paid straight from Today', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Mark Car Loan paid' }))
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Mark Car Loan paid' })).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Mark Phone paid' })).toBeInTheDocument()
+    const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')!
+    expect(String(patch[0])).toBe('/api/payment-tracker/payments/p1')
+    expect(JSON.parse(String(patch[1]?.body))).toEqual({ status: 'Paid', title: 'Car Loan' })
   })
 
   it('reloads when quick add saved something', async () => {

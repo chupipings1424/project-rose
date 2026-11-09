@@ -10,6 +10,7 @@ import { NotificationCard } from './components/NotificationCard'
 import { ReminderForm } from './components/ReminderForm'
 import { ReminderRow } from './components/ReminderRow'
 import { statusOf, type ReminderStatus } from './lib/status'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import './reminders.css'
 
 /** The worker checks every 15s, so the page refreshes at the same pace. */
@@ -30,14 +31,10 @@ export default function RemindersApp() {
   const [deleting, setDeleting] = useState<Reminder | null>(null)
   const [showDone, setShowDone] = useState(false)
 
+  useAutoRefresh(reload)
   useEffect(() => {
     const timer = window.setInterval(reload, REFRESH_MS)
-    const onVisible = () => document.visibilityState === 'visible' && reload()
-    document.addEventListener('visibilitychange', onVisible)
-    return () => {
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisible)
-    }
+    return () => window.clearInterval(timer)
   }, [reload])
 
   const grouped = useMemo(() => {

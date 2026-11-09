@@ -13,6 +13,7 @@ import { NewTitleDialog } from '../components/NewTitleDialog'
 import { PaymentForm } from '../components/PaymentForm'
 import { PaymentsTable } from '../components/PaymentsTable'
 import { useCurrency } from '../../../currency/useCurrency'
+import { useAutoRefresh } from '../../../hooks/useAutoRefresh'
 
 export default function PaymentsPage() {
   const { money } = useCurrency()
@@ -26,6 +27,8 @@ export default function PaymentsPage() {
     () => (selected ? workbookApi.summary(selected) : Promise.resolve(null)),
     [selected],
   )
+  useAutoRefresh(accounts.reload)
+  useAutoRefresh(summary.reload)
 
   const [showTable, setShowTable] = useState(false)
   const [showForm, setShowForm] = useState(false)

@@ -14,6 +14,7 @@ import { GoalForm } from './components/GoalForm'
 import { GoalHistory } from './components/GoalHistory'
 import { summarize } from './lib/summary'
 import type { EntryInput, GoalInput, SavingsEntry, SavingsGoal } from './model'
+import { useAutoRefresh } from '../../hooks/useAutoRefresh'
 import './savings.css'
 
 export default function SavingsApp() {
@@ -21,6 +22,7 @@ export default function SavingsApp() {
   const { money } = useCurrency()
   const goals = useAsync(() => savingsApi.list(), [])
   const { data, setData, reload } = goals
+  useAutoRefresh(reload)
   const [editing, setEditing] = useState<SavingsGoal | null>(null)
   const [deleting, setDeleting] = useState<SavingsGoal | null>(null)
   // Dialogs remember the *id*, so they always show the latest copy of the goal.

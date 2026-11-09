@@ -13,6 +13,7 @@ import { BudgetSectionTable } from '../components/BudgetSectionTable'
 import { ImportDialog } from '../../workbook/components/ImportDialog'
 import { NetTable } from '../components/NetTable'
 import { useCurrency } from '../../../currency/useCurrency'
+import { useAutoRefresh } from '../../../hooks/useAutoRefresh'
 
 export default function BudgetPage() {
   const { money } = useCurrency()
@@ -20,6 +21,7 @@ export default function BudgetPage() {
   const [params, setParams] = useSearchParams()
   const yearParam = params.get('year')
   const budget = useAsync(() => workbookApi.budget(yearParam), [yearParam])
+  useAutoRefresh(budget.reload)
 
   const [newOpen, setNewOpen] = useState(false)
   const [copyOpen, setCopyOpen] = useState(false)

@@ -5,6 +5,7 @@ import { useOffline } from '../lib/offline'
 import { ThemePicker } from '../theme/ThemePicker'
 import { Brand } from './Brand'
 import { OfflineBanner } from './OfflineBanner'
+import { UpdateBanner } from './UpdateBanner'
 
 // Only downloaded the first time someone taps (+).
 const QuickAddDialog = lazy(() => import('../quickadd/QuickAddDialog'))
@@ -44,6 +45,7 @@ export function AppShell() {
           </div>
         </div>
         <OfflineBanner />
+        <UpdateBanner />
       </header>
       <main className="page">
         <Outlet />

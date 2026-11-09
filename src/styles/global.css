@@ -1349,8 +1349,13 @@ tfoot td {
   color: inherit;
   text-decoration: none;
 }
-a.today-row:hover {
-  border-color: var(--accent);
+.today-link {
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+}
+.today-link:hover strong {
+  color: var(--accent);
 }
 .today-main {
   display: flex;
@@ -1404,12 +1409,38 @@ a.today-row:hover {
 .quick-kinds {
   margin-bottom: 1rem;
 }
-.offline-banner {
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.quick-actions .btn {
+  flex: 1 1 10rem;
+}
+.form-warning {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  font-size: 0.88rem;
+}.offline-banner {
   padding: 0.4rem 1rem;
   text-align: center;
   font-size: 0.85rem;
   color: var(--bg);
   background: var(--accent-2);
+}
+
+.update-banner {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 1rem;
+  border: none;
+  font: 600 0.85rem var(--font-body);
+  color: var(--on-accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  cursor: pointer;
 }
 
 /* ---------- responsive ---------- */
