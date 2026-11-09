@@ -1485,8 +1485,8 @@ tfoot td {
   gap: 0.5rem;
   margin-bottom: 1.25rem;
 }
-.command-bar.is-compact {
-  margin-bottom: 1rem;
+.say-page {
+  max-width: 40rem;
 }
 .command-form {
   display: flex;

@@ -21,6 +21,13 @@
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
+      "name": "Say a command",
+      "short_name": "Say",
+      "description": "Type or say an expense, payment or reminder",
+      "url": "/say",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
       "name": "Today",
       "url": "/today",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]

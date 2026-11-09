@@ -19,6 +19,7 @@ const HabitsApp = lazy(() => import('./projects/habits/HabitsApp'))
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'))
 const TodayPage = lazy(() => import('./today/TodayPage'))
+const SayPage = lazy(() => import('./commands/SayPage'))
 
 export default function App() {
   useServiceWorkerNavigation()
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/" element={<Navigate to="/projects" replace />} />
               <Route path="/projects" element={<ProjectsHubPage />} />
               <Route path="/today" element={<TodayPage />} />
+              <Route path="/say" element={<SayPage />} />
               <Route path="/projects/payment-tracker/*" element={<PaymentTrackerApp />} />
               <Route path="/projects/budget/*" element={<BudgetApp />} />
               <Route path="/projects/reminders/*" element={<RemindersApp />} />

@@ -194,19 +194,32 @@ charts, import dialog) lives in `src/projects/workbook/`.
   (+) button shows a badge. Every save carries an `Idempotency-Key`, so a retry can never
   add the same expense twice. Logging out with saves still waiting asks first, because it
   deletes them. Code: `src/lib/outbox.ts`, `src/components/SyncStatus.tsx`.
-- **Command bar** (top of Today and inside (+)): type or say one line in Taglish, check
-  the preview, then *Save* (or *Edit* to open the full form). Nothing is saved without the
-  preview. Examples:
+- **Say it** (`/say`, the "widget"): type or say one line in Taglish, check the preview,
+  then *Save* (or *Edit* to open the full form). Nothing is saved without the preview.
+  A web app can't add a real home-screen widget, so the phone opens this page instead:
+  - **iPhone**: a Shortcut (see below) dictates with Siri and opens
+    `/say?text=...`; the preview is already showing.
+  - **Android**: long-press the ROSE icon → *Say a command*, then tap the mic.
+
+  Examples:
   - `kape 50`, `grab 150 kahapon`, `limampung piso pamasahe` → expense
   - `bayad Meralco` / `paid Meralco 2,350` → payment (matches your payment titles)
   - `paalala bayad kuryente bukas 5pm`, `remind me to call mama in 30 minutes`,
     `ipaalala mo inom gamot mamayang gabi` → reminder
 
-  The mic button uses the browser's speech recognition (online only; it sends audio to
-  Google or Apple). On an iPhone home-screen app it may be missing: use the keyboard's own
-  mic instead. Code: `src/commands/` (the parser is a pure function, `parse.ts`).
-- **Android shortcut**: long-press the ROSE icon → *Quick add* opens (+) straight away
-  (`/today?quick=1`, from `manifest.webmanifest`).
+  Code: `src/commands/` (the parser is a pure function, `parse.ts`).
+- **iPhone Shortcut** (one-time setup, in the *Shortcuts* app → **+**):
+  1. Add **Dictate Text** (Language: English, or your choice; Stop Listening: After Pause).
+  2. Add **URL Encode** (input: *Dictated Text*).
+  3. Add **Open URLs** with `https://project-rose-gb6n.onrender.com/say?text=` followed
+     by the *URL Encoded Text* variable.
+  4. Name it "ROSE", then: long-press the home screen → **+** → *Shortcuts* widget; or
+     *Settings → Accessibility → Touch → Back Tap*; or just say "Hey Siri, ROSE".
+
+  The Shortcut opens Safari, not the home-screen app (iPhone doesn't let Shortcuts open
+  web apps), so log in to ROSE in Safari once.
+- **Android shortcuts**: long-press the ROSE icon → *Quick add* opens (+) straight away
+  (`/today?quick=1`); *Say a command* opens `/say` (both from `manifest.webmanifest`).
 
 ## Reminders (Project 03)
 

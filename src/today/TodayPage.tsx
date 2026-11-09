@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ErrorState, LoadingState } from '../components/States'
 import { useToast } from '../components/toast/useToast'
@@ -14,7 +14,6 @@ import { dueLabel, todayApi, type TodayHabit, type TodayPayment, type TodayRemin
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
 
 // "kape 50" / "remind me ... bukas 5pm" - its own small file, loaded after the page.
-const CommandBar = lazy(() => import('../commands/CommandBar'))
 
 const trackerLink = (title: string) => `/projects/payment-tracker?title=${encodeURIComponent(title)}`
 
@@ -214,9 +213,6 @@ export default function TodayPage() {
         <p className="eyebrow">{longDate(view.date)}</p>
         <h1 className="display">Today</h1>
       </header>
-      <Suspense fallback={null}>
-        <CommandBar />
-      </Suspense>
       <div className="today-grid">
         <PaymentsCard payments={view.payments} {...actions} />
         <RemindersCard reminders={view.reminders} {...actions} />

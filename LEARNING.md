@@ -735,6 +735,16 @@ gives text from the microphone. It is not in every browser, so the component che
 and hides the mic button when missing (feature detection, not browser sniffing). The
 recognizer is aborted in the effect cleanup so it never outlives the component.
 
+**A "widget" without widgets: the URL is the API.** Web apps can't add home-screen
+widgets, but anything that can open a link can talk to ROSE. `commands/SayPage.tsx` reads
+`?text=` (`useSearchParams`), hands it to `CommandBar` as `initialText`, then removes it
+from the address with `navigate('/say', { replace: true })` so a reload doesn't repeat it.
+An iPhone Shortcut (Siri dictation → URL encode → open the link) and an Android manifest
+`shortcuts` entry both point here. If you aren't logged in, `ProtectedRoute` keeps
+`pathname + search` in `state.from`, so after login you land back on the same preview.
+`CommandBar` previews `initialText` in an effect guarded by a `useRef`, because React's
+StrictMode runs effects twice in development.
+
 ---
 
 ## Exercises (easy → harder)

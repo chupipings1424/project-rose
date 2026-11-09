@@ -71,18 +71,18 @@ function whenLabel(iso: string): string {
 }
 
 interface CommandBarProps {
-  /** Inside quick add: no title row. */
-  compact?: boolean
+  /** Text that arrived from outside (an iPhone Shortcut): previewed straight away. */
+  initialText?: string
   /** "Edit": open the form with the draft. Defaults to opening quick add. */
   onEdit?: (draft: CommandDraft) => void
   onSaved?: () => void
 }
 
-export default function CommandBar({ compact = false, onEdit = openQuickAdd, onSaved }: CommandBarProps) {
+export default function CommandBar({ initialText = '', onEdit = openQuickAdd, onSaved }: CommandBarProps) {
   const { money } = useCurrency()
   const notify = useToast()
   const offline = useOffline()
-  const [text, setText] = useState('')
+  const [text, setText] = useState(initialText)
   const [hint, setHint] = useState('')
   const [preview, setPreview] = useState<Preview | null>(null)
   const [saving, setSaving] = useState(false)
@@ -90,9 +90,17 @@ export default function CommandBar({ compact = false, onEdit = openQuickAdd, onS
   const recognition = useRef<SpeechRecognitionLike | null>(null)
   const lookups = useRef<Promise<Lookups> | null>(null)
   const [canListen] = useState(() => !!speechRecognition())
+  const started = useRef(false)
 
-  // Stop the mic if the bar disappears (dialog closed, page changed).
+  // Stop the mic if the bar disappears (page changed).
   useEffect(() => () => recognition.current?.abort(), [])
+
+  // Text from a Shortcut: show its preview once (the ref stops a second run in StrictMode).
+  useEffect(() => {
+    if (started.current || !initialText.trim()) return
+    started.current = true
+    void showPreview(initialText)
+  }, [initialText])
 
   /** Titles and budget items, fetched once on first use (offline: the saved copy). */
   function loadLookups(): Promise<Lookups> {
@@ -221,7 +229,7 @@ export default function CommandBar({ compact = false, onEdit = openQuickAdd, onS
   const placeholder = `e.g. "${EXAMPLES[0]}" or "${EXAMPLES[3]}"`
 
   return (
-    <div className={`command-bar${compact ? ' is-compact' : ''}`}>
+    <div className="command-bar">
       <form className="command-form" onSubmit={handleSubmit}>
         <input
           type="text"

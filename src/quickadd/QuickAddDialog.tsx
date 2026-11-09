@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import type { CommandDraft } from '../commands/draft'
 import { Modal } from '../components/Modal'
 import { useToast } from '../components/toast/useToast'
@@ -11,8 +11,6 @@ import { fromLocalInput, nextHour, toLocalInput } from '../projects/reminders/li
 import { workbookApi } from '../projects/workbook/api/client'
 import type { PaymentStatus } from '../projects/workbook/api/types'
 import { expenseRequest, paymentRequest, QUEUED_MESSAGE, reminderRequest, type ExpenseAdded } from './requests'
-
-const CommandBar = lazy(() => import('../commands/CommandBar'))
 
 const QUICK_KINDS = ['Payment', 'Expense', 'Reminder'] as const
 type QuickKind = (typeof QUICK_KINDS)[number]
@@ -324,7 +322,6 @@ function ReminderForm({ onDone, draft }: FormProps<'reminder'>) {
  * when the save waits on this phone until it can sync. `draft` opens it filled in.
  */
 export default function QuickAddDialog({ onClose, draft }: { onClose: () => void; draft?: CommandDraft }) {
-  const [current, setCurrent] = useState(() => ({ draft, version: 0 }))
   const [kind, setKind] = useState<QuickKind>(() => {
     if (draft) return KIND_OF_DRAFT[draft.kind]
     const saved = loadPrefs().kind
@@ -337,20 +334,8 @@ export default function QuickAddDialog({ onClose, draft }: { onClose: () => void
     savePrefs({ kind: option })
   }
 
-  /** The command bar's "Edit": switch tab and refill the form (a new key starts it fresh). */
-  function edit(next: CommandDraft) {
-    setKind(KIND_OF_DRAFT[next.kind])
-    setCurrent((previous) => ({ draft: next, version: previous.version + 1 }))
-  }
-
-  const shown = current.draft
-  const key = `${kind}-${current.version}`
-
   return (
     <Modal open title="Quick add" onClose={onClose}>
-      <Suspense fallback={null}>
-        <CommandBar compact onEdit={edit} onSaved={onClose} />
-      </Suspense>
       {offline && (
         <p className="form-warning quick-offline" role="status">
           You&apos;re offline - saves wait on this phone and sync when you reconnect.
@@ -369,9 +354,9 @@ export default function QuickAddDialog({ onClose, draft }: { onClose: () => void
           </button>
         ))}
       </div>
-      {kind === 'Payment' && <PaymentForm key={key} onDone={onClose} draft={shown?.kind === 'payment' ? shown : undefined} />}
-      {kind === 'Expense' && <ExpenseForm key={key} onDone={onClose} draft={shown?.kind === 'expense' ? shown : undefined} />}
-      {kind === 'Reminder' && <ReminderForm key={key} onDone={onClose} draft={shown?.kind === 'reminder' ? shown : undefined} />}
+      {kind === 'Payment' && <PaymentForm onDone={onClose} draft={draft?.kind === 'payment' ? draft : undefined} />}
+      {kind === 'Expense' && <ExpenseForm onDone={onClose} draft={draft?.kind === 'expense' ? draft : undefined} />}
+      {kind === 'Reminder' && <ReminderForm onDone={onClose} draft={draft?.kind === 'reminder' ? draft : undefined} />}
     </Modal>
   )
 }
