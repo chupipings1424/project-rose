@@ -64,7 +64,8 @@ export const fromDto = (dto: ReminderDto): Reminder => ({
   updatedAt: dto.updated_at,
 })
 
-const toDto = (input: ReminderInput) => ({
+/** The wire format of a new or changed reminder (also used by the offline outbox). */
+export const toDto = (input: ReminderInput) => ({
   text: input.text,
   due_at: input.dueAt,
   repeat: input.repeat,

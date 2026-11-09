@@ -1,8 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CommandDraft } from '../commands/draft'
 import { ToastProvider } from '../components/toast/ToastProvider'
+import { CurrencyProvider } from '../currency/CurrencyProvider'
 import { DATA_CHANGED_EVENT } from '../lib/dataEvents'
+import { todayIso } from '../lib/format'
+import { memoryStorage, setOutboxStorage, type OutboxStorage } from '../lib/outbox'
 import QuickAddDialog from './QuickAddDialog'
 
 const json = (body: unknown, status = 200) =>
@@ -12,7 +16,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const month = new Date().getMonth()
 const year = new Date().getFullYear()
 
-// What the server has for Groceries this month; PATCHes change it, like the real API.
+// What the server has for Groceries this month; POST budget/expenses adds to it, like the real API.
 let groceries = 100
 
 const budget = () => {
@@ -37,6 +41,7 @@ const budget = () => {
 }
 
 const sent = (call: unknown[]) => JSON.parse(String((call[1] as RequestInit).body))
+const header = (call: unknown[], name: string) => new Headers((call[1] as RequestInit).headers).get(name)
 
 describe('QuickAddDialog', () => {
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -47,12 +52,16 @@ describe('QuickAddDialog', () => {
       return json({ title: 'Car Loan', has_plan: true, per_payment: 500, next_due_date: '2026-12-01' })
     if (url === '/api/payment-tracker/payments' && method === 'POST') return json({ id: 'p9', settled: true, summary: {} }, 201)
     if (url === `/api/payment-tracker/budget?year=${year}`) return json(budget())
-    if (url === '/api/payment-tracker/budget/lines' && method === 'POST') return json({ id: 'l2', budget: budget() }, 201)
-    if (url === '/api/payment-tracker/budget/lines/l1' && method === 'PATCH') {
-      groceries = Number(JSON.parse(String(init?.body)).value)
-      return json({ ok: true, budget: budget() })
+    if (url === '/api/payment-tracker/budget/expenses' && method === 'POST') {
+      const body = JSON.parse(String(init?.body))
+      if (Number(body.amount) > 9000) return json({ detail: 'That is a lot - check the amount.' }, 400)
+      const existing = body.item.toLowerCase() === 'groceries'
+      if (existing) groceries += Number(body.amount)
+      return json(
+        { line_id: existing ? 'l1' : 'l2', item: body.item, group: body.group, year, month, month_total: existing ? groceries : Number(body.amount), created_line: !existing },
+        201,
+      )
     }
-    if (url.startsWith('/api/payment-tracker/budget/lines/') && method === 'PATCH') return json({ ok: true, budget: budget() })
     if (url === '/api/reminders/items' && method === 'POST') {
       const body = JSON.parse(String(init?.body))
       return json({ id: 'r1', ...body, week_days: [], snoozed_until: null, ringing: false, fired_for: null, last_fired_at: null, done: false, created_at: '', updated_at: '' }, 201)
@@ -61,6 +70,7 @@ describe('QuickAddDialog', () => {
   })
   const onClose = vi.fn()
   const changed = vi.fn()
+  let storage: OutboxStorage
 
   beforeAll(() => {
     // jsdom lacks showModal()/close(); this minimal polyfill makes dialogs open like a browser.
@@ -73,27 +83,33 @@ describe('QuickAddDialog', () => {
   })
   beforeEach(() => {
     groceries = 100
+    storage = memoryStorage()
+    setOutboxStorage(storage)
     vi.stubGlobal('fetch', fetchMock)
     window.addEventListener(DATA_CHANGED_EVENT, changed)
   })
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
     window.removeEventListener(DATA_CHANGED_EVENT, changed)
     fetchMock.mockClear()
     onClose.mockClear()
     changed.mockClear()
   })
 
-  const renderDialog = () =>
+  const renderDialog = (draft?: CommandDraft) =>
     render(
-      <ToastProvider>
-        <QuickAddDialog onClose={onClose} />
-      </ToastProvider>,
+      <CurrencyProvider>
+        <ToastProvider>
+          <QuickAddDialog onClose={onClose} draft={draft} />
+        </ToastProvider>
+      </CurrencyProvider>,
     )
   const calls = (method: string, url: string) =>
     fetchMock.mock.calls.filter(([u, init]) => (init?.method ?? 'GET') === method && String(u).startsWith(url))
+  const goOffline = () => vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
 
-  it('adds a payment with the title plan filled in', async () => {
+  it('adds a payment with the title plan filled in, sent once-only', async () => {
     renderDialog()
     await waitFor(() => expect(screen.getByLabelText('Amount')).toHaveValue(500))
     expect(screen.getByLabelText('Due date')).toHaveValue('2026-12-01')
@@ -103,18 +119,21 @@ describe('QuickAddDialog', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     const [post] = calls('POST', '/api/payment-tracker/payments')
     expect(sent(post)).toMatchObject({ title: 'Car Loan', amount: '500', status: 'Paid', due_date: '2026-12-01' })
+    // The key lets the server ignore a repeat of the same save.
+    expect(header(post, 'Idempotency-Key')).toBeTruthy()
     expect(changed).toHaveBeenCalled()
   })
 
-  it('adds an expense on top of what this month already has', async () => {
+  it('adds an expense to the line by name - the server adds it to the month', async () => {
     renderDialog()
     await userEvent.click(screen.getByRole('button', { name: 'Expense' }))
     await userEvent.type(await screen.findByLabelText(/Amount spent/), '50')
     await userEvent.click(screen.getByRole('button', { name: 'Add expense' }))
 
     await waitFor(() => expect(onClose).toHaveBeenCalled())
-    const [patch] = calls('PATCH', '/api/payment-tracker/budget/lines/l1')
-    expect(sent(patch)).toEqual({ month, value: '150', year })
+    const [post] = calls('POST', '/api/payment-tracker/budget/expenses')
+    expect(sent(post)).toEqual({ item: 'Groceries', group: 'Food', amount: '50', date: todayIso() })
+    expect(calls('PATCH', '/api/payment-tracker/budget/lines')).toHaveLength(0)
   })
 
   it('creates a new expense item when asked', async () => {
@@ -126,8 +145,7 @@ describe('QuickAddDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Add expense' }))
 
     await waitFor(() => expect(onClose).toHaveBeenCalled())
-    expect(sent(calls('POST', '/api/payment-tracker/budget/lines')[0])).toMatchObject({ section: 'Expense', group: 'Food', item: 'Taxi', year })
-    expect(sent(calls('PATCH', '/api/payment-tracker/budget/lines/l2')[0])).toEqual({ month, value: '20', year })
+    expect(sent(calls('POST', '/api/payment-tracker/budget/expenses')[0])).toEqual({ item: 'Taxi', group: 'Food', amount: '20', date: todayIso() })
   })
 
   it('sets a one-off reminder', async () => {
@@ -158,7 +176,7 @@ describe('QuickAddDialog', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('adds expenses in a row on top of the fresh total', async () => {
+  it('adds expenses in a row, each with its own key', async () => {
     renderDialog()
     await userEvent.click(screen.getByRole('button', { name: 'Expense' }))
     await userEvent.type(await screen.findByLabelText(/Amount spent/), '50')
@@ -169,11 +187,10 @@ describe('QuickAddDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Add expense' }))
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
-    // 100 + 50, then 150 + 25: the second add used the reloaded budget, not the old 100.
-    expect(calls('PATCH', '/api/payment-tracker/budget/lines/l1').map(sent)).toEqual([
-      { month, value: '150', year },
-      { month, value: '175', year },
-    ])
+    const posts = calls('POST', '/api/payment-tracker/budget/expenses')
+    expect(posts.map((call) => sent(call).amount)).toEqual(['50', '25'])
+    expect(header(posts[0], 'Idempotency-Key')).not.toBe(header(posts[1], 'Idempotency-Key'))
+    expect(groceries).toBe(175)
   })
 
   it('remembers the last tab and payment title', async () => {
@@ -207,14 +224,51 @@ describe('QuickAddDialog', () => {
     expect(await screen.findByText(/counts it twice/)).toBeInTheDocument()
   })
 
-  it('is view only while offline', async () => {
-    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
-    try {
-      renderDialog()
-      expect(screen.getByText(/view-only/)).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Payment' })).not.toBeInTheDocument()
-    } finally {
-      vi.restoreAllMocks()
-    }
+  it('offline: keeps the save on this phone instead of sending it', async () => {
+    goOffline()
+    renderDialog()
+    expect(screen.getByText(/saves wait on this phone/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Expense' }))
+    await userEvent.type(await screen.findByLabelText(/Amount spent/), '75')
+    await userEvent.click(screen.getByRole('button', { name: 'Add expense' }))
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+    expect(await screen.findByText(/Saved on this phone/)).toBeInTheDocument()
+    expect(calls('POST', '/api/payment-tracker/budget/expenses')).toHaveLength(0)
+    const [waiting] = await storage.all()
+    expect(waiting).toMatchObject({ kind: 'expense', url: '/api/payment-tracker/budget/expenses', body: { item: 'Groceries', amount: '75' } })
+  })
+
+  it('keeps the save when the server cannot be reached', async () => {
+    fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError('Failed to fetch')))
+    renderDialog({ kind: 'reminder', text: 'Call mom', dueAt: new Date(Date.now() + 3_600_000).toISOString() })
+    await userEvent.click(await screen.findByRole('button', { name: 'Set reminder' }))
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+    expect(await storage.all()).toHaveLength(1)
+  })
+
+  it('shows a refusal from the server and keeps the form open', async () => {
+    renderDialog()
+    await userEvent.click(screen.getByRole('button', { name: 'Expense' }))
+    await userEvent.type(await screen.findByLabelText(/Amount spent/), '9999')
+    await userEvent.click(screen.getByRole('button', { name: 'Add expense' }))
+
+    expect(await screen.findByText('That is a lot - check the amount.')).toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(await storage.all()).toHaveLength(0)
+  })
+
+  it('opens filled in from a command bar draft', async () => {
+    renderDialog({ kind: 'expense', item: 'groceries', amount: 80, date: todayIso() })
+    expect(screen.getByRole('button', { name: 'Expense' })).toHaveAttribute('aria-pressed', 'true')
+    expect(await screen.findByLabelText('Expense')).toHaveValue('l1')
+    expect(screen.getByLabelText(/Amount spent/)).toHaveValue(80)
+  })
+
+  it('a draft for a new item starts on "+ New item"', async () => {
+    renderDialog({ kind: 'expense', item: 'Taho', amount: 30, date: todayIso() })
+    expect(await screen.findByLabelText('Item')).toHaveValue('Taho')
+    expect(screen.getByLabelText('Expense')).toHaveValue('__new')
   })
 })

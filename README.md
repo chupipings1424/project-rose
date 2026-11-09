@@ -186,10 +186,27 @@ charts, import dialog) lives in `src/projects/workbook/`.
 - **Update banner**: after a deploy, an open app shows *A new version of ROSE is ready - tap
   to reload* (it compares the `version.json` written by each build; checked when you return
   to the app and every 30 minutes).
-- **Offline (view only)**: the service worker saves the app and every page you load. With no
-  connection ROSE still opens and shows the last saved data with an *Offline* banner; saving
-  is paused and the (+) button is hidden until you're back online. Logging out deletes the
-  saved data.
+- **Offline**: the service worker saves the app and every page you load. With no
+  connection ROSE still opens and shows the last saved data with an *Offline* banner.
+  Project pages are view only, but **quick add (+) still saves**: payments, expenses and
+  reminders wait on the phone (IndexedDB) and are sent when you open the app again or get
+  back online. The header shows *N waiting to sync · View* (retry, delete, *Sync now*); the
+  (+) button shows a badge. Every save carries an `Idempotency-Key`, so a retry can never
+  add the same expense twice. Logging out with saves still waiting asks first, because it
+  deletes them. Code: `src/lib/outbox.ts`, `src/components/SyncStatus.tsx`.
+- **Command bar** (top of Today and inside (+)): type or say one line in Taglish, check
+  the preview, then *Save* (or *Edit* to open the full form). Nothing is saved without the
+  preview. Examples:
+  - `kape 50`, `grab 150 kahapon`, `limampung piso pamasahe` → expense
+  - `bayad Meralco` / `paid Meralco 2,350` → payment (matches your payment titles)
+  - `paalala bayad kuryente bukas 5pm`, `remind me to call mama in 30 minutes`,
+    `ipaalala mo inom gamot mamayang gabi` → reminder
+
+  The mic button uses the browser's speech recognition (online only; it sends audio to
+  Google or Apple). On an iPhone home-screen app it may be missing: use the keyboard's own
+  mic instead. Code: `src/commands/` (the parser is a pure function, `parse.ts`).
+- **Android shortcut**: long-press the ROSE icon → *Quick add* opens (+) straight away
+  (`/today?quick=1`, from `manifest.webmanifest`).
 
 ## Reminders (Project 03)
 

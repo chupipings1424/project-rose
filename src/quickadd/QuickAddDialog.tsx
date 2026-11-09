@@ -1,17 +1,23 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, useRef, useState, type FormEvent } from 'react'
+import type { CommandDraft } from '../commands/draft'
 import { Modal } from '../components/Modal'
 import { useToast } from '../components/toast/useToast'
+import { useCurrency } from '../currency/useCurrency'
 import { useAsync } from '../hooks/useAsync'
-import { announceDataChanged } from '../lib/dataEvents'
 import { nowTime, todayIso } from '../lib/format'
-import { useOffline, VIEW_ONLY_MESSAGE } from '../lib/offline'
-import { remindersApi } from '../projects/reminders/api/client'
+import { useOffline } from '../lib/offline'
+import { submit, type SubmitResult } from '../lib/outbox'
 import { fromLocalInput, nextHour, toLocalInput } from '../projects/reminders/lib/time'
 import { workbookApi } from '../projects/workbook/api/client'
 import type { PaymentStatus } from '../projects/workbook/api/types'
+import { expenseRequest, paymentRequest, QUEUED_MESSAGE, reminderRequest, type ExpenseAdded } from './requests'
+
+const CommandBar = lazy(() => import('../commands/CommandBar'))
 
 const QUICK_KINDS = ['Payment', 'Expense', 'Reminder'] as const
 type QuickKind = (typeof QUICK_KINDS)[number]
+
+const KIND_OF_DRAFT: Record<CommandDraft['kind'], QuickKind> = { payment: 'Payment', expense: 'Expense', reminder: 'Reminder' }
 
 const NEW_LINE = '__new'
 
@@ -40,20 +46,21 @@ function savePrefs(change: QuickPrefs) {
 }
 
 /**
- * Shared by the three forms: save, tell the user, let other pages reload, then either
- * close or (after "Save & add another") reset the form for the next entry.
+ * Shared by the three forms: save (or keep it for later when offline - see lib/outbox.ts),
+ * tell the user, then either close or (after "Save & add another") reset the form.
+ * Pages reload by themselves: the outbox announces every change.
  */
 function useSaver(onDone: () => void) {
   const notify = useToast()
   const [saving, setSaving] = useState(false)
   // Which submit button was pressed. A ref, because it only matters inside save().
   const again = useRef(false)
-  async function save(action: () => Promise<unknown>, message: string, reset: () => void) {
+  async function save(action: () => Promise<SubmitResult<unknown>>, message: string, reset: () => void) {
     setSaving(true)
     try {
-      await action()
-      notify(message, 'success')
-      announceDataChanged()
+      const result = await action()
+      if (result.status === 'queued') notify(QUEUED_MESSAGE, 'info')
+      else notify(message, 'success')
       if (again.current) {
         setSaving(false)
         reset()
@@ -78,17 +85,27 @@ function useSaver(onDone: () => void) {
   return { save, buttons }
 }
 
-function PaymentForm({ onDone }: { onDone: () => void }) {
+type Draft<K extends CommandDraft['kind']> = Extract<CommandDraft, { kind: K }> | undefined
+
+interface FormProps<K extends CommandDraft['kind']> {
+  onDone: () => void
+  /** Filled in by the command bar's "Edit". */
+  draft?: Draft<K>
+}
+
+function PaymentForm({ onDone, draft }: FormProps<'payment'>) {
+  const { money } = useCurrency()
   const accounts = useAsync(() => workbookApi.accounts(), [])
-  const [title, setTitle] = useState(() => loadPrefs().title ?? '')
+  const [title, setTitle] = useState(() => draft?.title ?? loadPrefs().title ?? '')
   // The remembered title may have been renamed or deleted since: fall back to the first one.
   const chosen = accounts.data?.some((a) => a.title === title) ? title : accounts.data?.[0]?.title || ''
+  // Offline, this is the copy saved the last time the title was opened (if ever).
   const summary = useAsync(() => (chosen ? workbookApi.summary(chosen) : Promise.resolve(null)), [chosen])
   // null = "not typed yet": show the suggestion from the title's plan.
-  const [amount, setAmount] = useState<string | null>(null)
+  const [amount, setAmount] = useState<string | null>(draft?.amount != null ? String(draft.amount) : null)
   const [dueDate, setDueDate] = useState<string | null>(null)
   const [status, setStatus] = useState<PaymentStatus>('Paid')
-  const [date, setDate] = useState(todayIso())
+  const [date, setDate] = useState(() => draft?.date ?? todayIso())
   const { save, buttons } = useSaver(onDone)
 
   const plan = summary.data
@@ -101,10 +118,12 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const payload = { title: chosen, amount: amountValue, date, time: nowTime(), status, due_date: dueValue, note: '' }
     void save(
       async () => {
-        await workbookApi.addPayment({ title: chosen, amount: amountValue, date, time: nowTime(), status, due_date: dueValue, note: '' })
+        const result = await submit(paymentRequest(payload, money))
         savePrefs({ title: chosen })
+        return result
       },
       `Payment saved for ${chosen}`,
       () => {
@@ -160,7 +179,8 @@ function PaymentForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-function ExpenseForm({ onDone }: { onDone: () => void }) {
+function ExpenseForm({ onDone, draft }: FormProps<'expense'>) {
+  const { money } = useCurrency()
   // Captured once, so the month can't change between renders.
   const [now] = useState(() => new Date())
   const year = now.getFullYear()
@@ -168,47 +188,57 @@ function ExpenseForm({ onDone }: { onDone: () => void }) {
   const budget = useAsync(() => workbookApi.budget(year), [year])
   // Payment titles, to warn when an expense would be counted twice (see the sync note below).
   const accounts = useAsync(() => workbookApi.accounts(), [])
-  const [choice, setChoice] = useState(() => loadPrefs().line ?? '')
-  const [item, setItem] = useState('')
+  // '' = not picked yet: use the draft's item if it has a line, else the remembered one.
+  const [choice, setChoice] = useState(() => (draft ? '' : (loadPrefs().line ?? '')))
+  const [draftItem] = useState(() => draft?.item.trim().toLowerCase() ?? '')
+  const [item, setItem] = useState(draft?.item ?? '')
   const [group, setGroup] = useState('')
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(draft ? String(draft.amount) : '')
   const { save, buttons } = useSaver(onDone)
 
   if (budget.loading && !budget.data) return <p className="muted">Loading budget…</p>
-  if (budget.error || !budget.data) return <p className="form-error">{budget.error?.message}</p>
 
+  // No budget (offline and never opened on this phone)? Then just type the item.
   const data = budget.data
-  const lines = data.sections.filter((s) => s.name === 'Expense').flatMap((s) => s.groups.flatMap((g) => g.lines))
-  const selected = choice === NEW_LINE || lines.some((line) => line.id === choice) ? choice : lines[0]?.id || NEW_LINE
-  const groups = data.known_groups.Expense
+  const lines = (data?.sections ?? []).filter((s) => s.name === 'Expense').flatMap((s) => s.groups.flatMap((g) => g.lines))
+  const draftLine = draftItem ? lines.find((line) => line.item.trim().toLowerCase() === draftItem) : undefined
+  const fallback = draftItem ? (draftLine?.id ?? NEW_LINE) : lines[0]?.id || NEW_LINE
+  const selected = choice === NEW_LINE || lines.some((line) => line.id === choice) ? choice : fallback
+  const groups = data?.known_groups.Expense ?? []
   const groupValue = group || groups[0] || 'Other'
-  const monthName = data.months[month] ?? ''
-  const itemName = (selected === NEW_LINE ? item : (lines.find((line) => line.id === selected)?.item ?? '')).trim().toLowerCase()
-  const isPaymentTitle = !!itemName && !!accounts.data?.some((a) => a.title.trim().toLowerCase() === itemName)
+  const monthName = data?.months[month] ?? now.toLocaleDateString(undefined, { month: 'short' })
+  const line = lines.find((l) => l.id === selected)
+  const itemName = (selected === NEW_LINE ? item : (line?.item ?? '')).trim()
+  const lowered = itemName.toLowerCase()
+  const isPaymentTitle = !!lowered && !!accounts.data?.some((a) => a.title.trim().toLowerCase() === lowered)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const spent = Number(amount)
-    if (!(spent > 0)) return
-    let savedId = selected
+    if (!(spent > 0) || !itemName) return
+    const input = {
+      item: itemName,
+      group: selected === NEW_LINE ? groupValue.trim() : (line?.group ?? groupValue),
+      amount: String(spent),
+      // Today, not the day the dialog was opened - and a late sync still lands in this month.
+      date: todayIso(),
+    }
+    let savedId = selected === NEW_LINE ? '' : selected
     void save(
       async () => {
-        let current = 0
-        if (selected === NEW_LINE) {
-          savedId = (await workbookApi.addBudgetLine({ section: 'Expense', group: groupValue, item: item.trim(), notes: '', year })).id
-        } else {
-          current = lines.find((line) => line.id === selected)?.amounts[month] ?? 0
-        }
-        const total = Math.round((current + spent) * 100) / 100
-        await workbookApi.updateBudgetCell(savedId, month, String(total), year)
-        savePrefs({ line: savedId })
+        // The server adds it to this month's total itself, so two quick adds can't overwrite each other.
+        const result = await submit<ExpenseAdded>(expenseRequest(input, money))
+        if (result.status === 'sent') savedId = result.body.line_id
+        if (savedId) savePrefs({ line: savedId })
+        return result
       },
       `Added to ${monthName} expenses`,
       () => {
-        // Stay on the line just used (also a brand-new one) and fetch the new totals,
-        // otherwise the next add would start from the old amount.
-        setChoice(savedId)
-        setItem('')
+        // Stay on the line just used (also a brand-new one) and fetch the new totals.
+        if (savedId) {
+          setChoice(savedId)
+          setItem('')
+        }
         setAmount('')
         budget.reload()
       },
@@ -260,15 +290,15 @@ function ExpenseForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-function ReminderForm({ onDone }: { onDone: () => void }) {
-  const [text, setText] = useState('')
-  const [when, setWhen] = useState(() => toLocalInput(nextHour()))
+function ReminderForm({ onDone, draft }: FormProps<'reminder'>) {
+  const [text, setText] = useState(draft?.text ?? '')
+  const [when, setWhen] = useState(() => toLocalInput(draft?.dueAt ?? nextHour()))
   const { save, buttons } = useSaver(onDone)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     void save(
-      () => remindersApi.create({ text: text.trim(), dueAt: fromLocalInput(when), repeat: 'none' }),
+      () => submit(reminderRequest({ text: text.trim(), dueAt: fromLocalInput(when), repeat: 'none' })),
       'Reminder set',
       () => setText(''),
     )
@@ -289,9 +319,14 @@ function ReminderForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-/** The (+) dialog: add a payment, an expense or a reminder from any page. */
-export default function QuickAddDialog({ onClose }: { onClose: () => void }) {
+/**
+ * The (+) dialog: add a payment, an expense or a reminder from any page - also offline,
+ * when the save waits on this phone until it can sync. `draft` opens it filled in.
+ */
+export default function QuickAddDialog({ onClose, draft }: { onClose: () => void; draft?: CommandDraft }) {
+  const [current, setCurrent] = useState(() => ({ draft, version: 0 }))
   const [kind, setKind] = useState<QuickKind>(() => {
+    if (draft) return KIND_OF_DRAFT[draft.kind]
     const saved = loadPrefs().kind
     return saved && QUICK_KINDS.includes(saved) ? saved : 'Payment'
   })
@@ -302,30 +337,41 @@ export default function QuickAddDialog({ onClose }: { onClose: () => void }) {
     savePrefs({ kind: option })
   }
 
+  /** The command bar's "Edit": switch tab and refill the form (a new key starts it fresh). */
+  function edit(next: CommandDraft) {
+    setKind(KIND_OF_DRAFT[next.kind])
+    setCurrent((previous) => ({ draft: next, version: previous.version + 1 }))
+  }
+
+  const shown = current.draft
+  const key = `${kind}-${current.version}`
+
   return (
     <Modal open title="Quick add" onClose={onClose}>
-      {offline ? (
-        <p className="muted">{VIEW_ONLY_MESSAGE}</p>
-      ) : (
-        <>
-          <div className="day-chips quick-kinds" role="group" aria-label="What to add">
-            {QUICK_KINDS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={`chip${kind === option ? ' is-on' : ''}`}
-                aria-pressed={kind === option}
-                onClick={() => choose(option)}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-          {kind === 'Payment' && <PaymentForm onDone={onClose} />}
-          {kind === 'Expense' && <ExpenseForm onDone={onClose} />}
-          {kind === 'Reminder' && <ReminderForm onDone={onClose} />}
-        </>
+      <Suspense fallback={null}>
+        <CommandBar compact onEdit={edit} onSaved={onClose} />
+      </Suspense>
+      {offline && (
+        <p className="form-warning quick-offline" role="status">
+          You&apos;re offline - saves wait on this phone and sync when you reconnect.
+        </p>
       )}
+      <div className="day-chips quick-kinds" role="group" aria-label="What to add">
+        {QUICK_KINDS.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className={`chip${kind === option ? ' is-on' : ''}`}
+            aria-pressed={kind === option}
+            onClick={() => choose(option)}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+      {kind === 'Payment' && <PaymentForm key={key} onDone={onClose} draft={shown?.kind === 'payment' ? shown : undefined} />}
+      {kind === 'Expense' && <ExpenseForm key={key} onDone={onClose} draft={shown?.kind === 'expense' ? shown : undefined} />}
+      {kind === 'Reminder' && <ReminderForm key={key} onDone={onClose} draft={shown?.kind === 'reminder' ? shown : undefined} />}
     </Modal>
   )
 }

@@ -41,11 +41,16 @@ export function errorMessage(body: unknown): string | undefined {
   return undefined
 }
 
+export interface ApiFetchOptions {
+  /** The outbox (lib/outbox.ts) may try a save even while ROSE thinks it is offline. */
+  allowOffline?: boolean
+}
+
 /** `fetch` plus the access token. Throws ApiError when offline or logged out. */
-export async function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  // Offline mode is view only: don't even try to save.
+export async function apiFetch(url: string, init: RequestInit = {}, options: ApiFetchOptions = {}): Promise<Response> {
+  // Offline mode is view only: don't even try to save (quick add goes through the outbox instead).
   const method = (init.method ?? 'GET').toUpperCase()
-  if (method !== 'GET' && isOffline()) throw new ApiError(VIEW_ONLY_MESSAGE, 0)
+  if (method !== 'GET' && !options.allowOffline && isOffline()) throw new ApiError(VIEW_ONLY_MESSAGE, 0)
 
   const headers = new Headers(init.headers)
   const token = await accessToken()

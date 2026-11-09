@@ -678,6 +678,62 @@ answers are deleted on log out (`clearOfflineData`).
 
 **One guard for every write.** Instead of disabling every Save button, `apiFetch` refuses
 non-GET requests while offline with a friendly message. One place, every project covered.
+Quick add is the one exception: it passes `{ allowOffline: true }` and goes through the
+outbox (section 20).
+
+## 20. Offline saves (outbox) and the Taglish command bar
+
+**The outbox pattern.** `lib/outbox.ts` turns "save" into "save now, or save later":
+
+1. `submit(request)` gives the request an id (`crypto.randomUUID()`) and tries to POST it.
+2. If the network fails, times out (`AbortSignal.timeout(10_000)`), or the server answers
+   401/408/429/5xx, the request is stored and `submit` returns `{ status: 'queued' }`.
+   A real "no" (400, 404, 409...) is thrown, because retrying would fail again.
+3. `flushOutbox()` sends stored entries, oldest first, when the app opens, comes back to
+   the front (`visibilitychange`) or goes `online`. It stops at the first retryable error
+   (still offline) and marks refused entries so you can retry or delete them.
+
+The return type is a *discriminated union*,
+`{ status: 'sent'; body: T } | { status: 'queued' }`: TypeScript forces callers to handle
+both cases before they can touch `body`.
+
+**IndexedDB** is the browser's real database (localStorage only holds small strings and
+blocks the page). Its API is old and callback based, so `outbox.ts` wraps it in a tiny
+`OutboxStorage` interface with `all / put / remove`, plus a `memoryStorage()` used in tests
+(jsdom has no IndexedDB). Coding against an interface is what makes that swap possible.
+
+**Idempotency keys: "do this at most once".** The phone can send a request, the server can
+save it, and the answer can be lost on the way back. The phone then retries. Without
+protection that is a double expense. Each entry's id goes out as the `Idempotency-Key`
+header; the API's `[Idempotent]` filter remembers the first successful answer for that
+key and replays it instead of saving again (`Idempotent-Replayed: true`). The same idea is
+used by payment providers like Stripe.
+
+**Why not Background Sync?** It would send saves while the app is closed, but iPhones do
+not support it. ROSE uses the events every browser has, so iPhone and Android behave the
+same. Two tabs flushing at once are kept apart with `navigator.locks` when available.
+
+**`useSyncExternalStore` again.** `useOutbox()` subscribes to the outbox and returns the
+current user's entries. The snapshot must be the *same object* until something changes,
+otherwise React re-renders forever, so the hook caches the filtered array.
+
+**Parsing as a pure function.** `commands/parse.ts` turns
+`"paalala bayad kuryente bukas 5pm"` into
+`{ kind: 'reminder', text: 'bayad kuryente', dueAt: ... }`. It takes `now`, payment titles
+and budget items as *arguments* instead of reading the clock or calling the API, so
+`parse.test.ts` can run 40 cases in milliseconds with a fixed date. Keep logic pure; keep
+I/O at the edges (the `CommandBar` component).
+
+**Preview before acting.** The parser can guess wrong ("50" for a payment or an expense?),
+so the bar never saves straight away: it shows a preview card with *Save*, *Edit* (opens
+the full form, prefilled through a `CustomEvent`, `quickadd/openQuickAdd.ts`) and *×*.
+Destructive actions (deleting a waiting save, logging out with saves waiting) always ask
+through `ConfirmDialog`.
+
+**Web Speech API.** `window.SpeechRecognition` (Chrome/Android: `webkitSpeechRecognition`)
+gives text from the microphone. It is not in every browser, so the component checks for it
+and hides the mic button when missing (feature detection, not browser sniffing). The
+recognizer is aborted in the effect cleanup so it never outlives the component.
 
 ---
 
@@ -706,3 +762,7 @@ non-GET requests while offline with a friendly message. One place, every project
     then the `TodayView` type and the page (section 19).
 13. Quick add: add a fourth tab, "Habit", that ticks a habit for today. Reuse `useSaver` and
     write the test first in `QuickAddDialog.test.tsx` (section 19).
+14. Command bar: teach the parser `"gastos 200 sa grocery"` (the word after `sa` is the
+    item). Add the failing case to `parse.test.ts` first (section 20).
+15. Outbox: show how long an entry has waited ("2 hours ago") in `SyncStatus`, and add a
+    test with `vi.useFakeTimers()` (section 20).
