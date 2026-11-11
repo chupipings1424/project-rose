@@ -1,0 +1,194 @@
+/*
+ * Animated themes (loaded only when one is picked - see AnimatedScene.tsx).
+ * Rule of thumb: animate only `transform` and `opacity`. The GPU can move and fade a layer
+ * without repainting it, so these stay smooth on a phone.
+ */
+
+/* Motion switch off (or the phone asks for reduced motion): freeze every animation in place. */
+html[data-motion='off'] .bg-scene *,
+html[data-motion='off'] .bg-scene *::before,
+html[data-motion='off'] .bg-scene *::after {
+  animation-play-state: paused !important;
+}
+
+.mesh-canvas,
+.dn-layer,
+.iso-layer,
+.petal-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Day / Night ---------- */
+.dn-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#02040f, #0b1233 60%, #1b2350);
+  transition: background 1.2s;
+}
+html[data-phase='day'] .dn-sky {
+  background: linear-gradient(#3d8ef0, #8fcaff 60%, #e3f3ff);
+}
+html[data-phase='dawn'] .dn-sky {
+  background: linear-gradient(#26305e, #8b5a8c 45%, #f6a87c 80%, #ffd9a8);
+}
+html[data-phase='sunset'] .dn-sky {
+  background: linear-gradient(#1d1b4f, #6b2f6b 40%, #e0566b 70%, #f99d5a);
+}
+
+.dn-sun {
+  position: absolute;
+  right: 12%;
+  top: 8%;
+  width: 26vmin;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff7d1 0 30%, #ffd36b 45%, rgba(255, 211, 107, 0) 70%);
+  opacity: 0;
+  transition: top 1.2s, right 1.2s, opacity 1.2s;
+}
+html[data-phase='day'] .dn-sun {
+  opacity: 1;
+}
+html[data-phase='dawn'] .dn-sun {
+  opacity: 1;
+  top: 52%;
+  right: 60%;
+}
+html[data-phase='sunset'] .dn-sun {
+  opacity: 1;
+  top: 58%;
+  background: radial-gradient(circle, #ffe2b0 0 28%, #ff8a4a 45%, rgba(255, 120, 80, 0) 70%);
+}
+
+.dn-moon {
+  position: absolute;
+  right: 16%;
+  top: 10%;
+  width: 12vmin;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: inset -3vmin 1vmin 0 0 #f1edc8;
+  opacity: 0;
+  transition: opacity 1.2s;
+}
+html[data-phase='night'] .dn-moon {
+  opacity: 1;
+}
+
+.dn-stars {
+  position: absolute;
+  inset: 0 0 35% 0;
+  opacity: 0;
+  transition: opacity 1.2s;
+}
+html[data-phase='night'] .dn-stars {
+  opacity: 1;
+}
+html[data-phase='dawn'] .dn-stars,
+html[data-phase='sunset'] .dn-stars {
+  opacity: 0.3;
+}
+.dn-stars span {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: dn-twinkle var(--d) ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+@keyframes dn-twinkle {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+.dn-cloud {
+  position: absolute;
+  left: 0;
+  width: var(--w);
+  height: calc(var(--w) * 0.28);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, var(--cloud) 0%, transparent 68%);
+  animation: dn-cloud var(--d) linear infinite;
+  animation-delay: var(--delay);
+  will-change: transform;
+}
+@keyframes dn-cloud {
+  from {
+    transform: translateX(-40vmax);
+  }
+  to {
+    transform: translateX(calc(100vw + 5vmax));
+  }
+}
+
+/* ---------- Isometric ---------- */
+.iso-layer svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.iso-tall {
+  display: none;
+}
+@media (orientation: portrait) {
+  .iso-wide {
+    display: none;
+  }
+  .iso-tall {
+    display: block;
+  }
+}
+.iso-shape {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: iso-float var(--d) ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+@keyframes iso-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-26px) rotate(7deg);
+  }
+}
+
+/* ---------- Rose Bloom ---------- */
+.petal-layer {
+  overflow: hidden;
+}
+.petal {
+  position: absolute;
+  top: -6%;
+  animation: petal-fall var(--d) linear infinite;
+  animation-delay: var(--delay);
+  will-change: transform;
+}
+.petal i {
+  display: block;
+  width: var(--s);
+  height: calc(var(--s) * 0.8);
+  border-radius: 150% 0 150% 0;
+  background: linear-gradient(135deg, #ffd1dc, #f48fb1 60%, #c9577f);
+  opacity: 0.8;
+  animation: petal-sway calc(var(--d) / 5) ease-in-out infinite alternate;
+  animation-delay: var(--delay);
+}
+@keyframes petal-fall {
+  to {
+    transform: translate3d(-14vw, 115vh, 0);
+  }
+}
+@keyframes petal-sway {
+  from {
+    transform: translateX(-14px) rotate(-25deg);
+  }
+  to {
+    transform: translateX(14px) rotate(40deg);
+  }
+}

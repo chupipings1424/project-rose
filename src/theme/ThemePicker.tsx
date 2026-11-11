@@ -1,4 +1,4 @@
-import { THEMES, THEME_GROUPS, type ThemeId } from './themes'
+import { THEMES, THEME_GROUPS, themeGroupOf, type ThemeId } from './themes'
 import { useTheme } from './useTheme'
 
 interface ThemePickerProps {
@@ -7,60 +7,81 @@ interface ThemePickerProps {
 }
 
 export function ThemePicker({ variant = 'grid' }: ThemePickerProps) {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, motion, setMotion } = useTheme()
 
   if (variant === 'compact') {
     return (
-      <label className="theme-compact" title="Change theme">
-        <span className="sr-only">Theme</span>
-        <span className="theme-compact-dot" aria-hidden="true" />
-        <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeId)}>
-          {THEME_GROUPS.map((group) => (
-            <optgroup key={group.id} label={group.label}>
-              {THEMES.filter((t) => t.group === group.id).map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </label>
+      <>
+        <label className="theme-compact" title="Change theme">
+          <span className="sr-only">Theme</span>
+          <span className="theme-compact-dot" aria-hidden="true" />
+          <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeId)}>
+            {THEME_GROUPS.map((group) => (
+              <optgroup key={group.id} label={group.label}>
+                {THEMES.filter((t) => t.group === group.id).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+        {themeGroupOf(theme) === 'animated' && (
+          <button
+            type="button"
+            className="icon-btn theme-motion-btn"
+            aria-label={motion ? 'Pause background motion' : 'Play background motion'}
+            title={motion ? 'Pause background motion' : 'Play background motion'}
+            onClick={() => setMotion(!motion)}
+          >
+            {motion ? '❚❚' : '▶'}
+          </button>
+        )}
+      </>
     )
   }
 
   return (
-    <div className="theme-groups" role="radiogroup" aria-label="Choose a theme">
-      {THEME_GROUPS.map((group) => (
-        <div key={group.id} className="theme-group" role="group" aria-labelledby={`theme-group-${group.id}`}>
-          <p className="theme-group-label" id={`theme-group-${group.id}`}>
-            {group.label}
-          </p>
-          <div className="theme-grid">
-            {THEMES.filter((t) => t.group === group.id).map((t) => {
-              const [bg, a, b] = t.swatch
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={theme === t.id}
-                  className={`theme-card${theme === t.id ? ' is-active' : ''}`}
-                  onClick={() => setTheme(t.id)}
-                >
-                  <span
-                    className="theme-swatch"
-                    style={{ background: `linear-gradient(135deg, ${a}, ${b})`, boxShadow: `inset 0 0 0 3px ${bg}` }}
-                    aria-hidden="true"
-                  />
-                  <span className="theme-name">{t.name}</span>
-                  <span className="theme-desc">{t.description}</span>
-                </button>
-              )
-            })}
+    <>
+      <div className="theme-groups" role="radiogroup" aria-label="Choose a theme">
+        {THEME_GROUPS.map((group) => (
+          <div key={group.id} className="theme-group" role="group" aria-labelledby={`theme-group-${group.id}`}>
+            <p className="theme-group-label" id={`theme-group-${group.id}`}>
+              {group.label}
+            </p>
+            <div className="theme-grid">
+              {THEMES.filter((t) => t.group === group.id).map((t) => {
+                const [bg, a, b] = t.swatch
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={theme === t.id}
+                    className={`theme-card${theme === t.id ? ' is-active' : ''}`}
+                    onClick={() => setTheme(t.id)}
+                  >
+                    <span
+                      className="theme-swatch"
+                      style={{ background: `linear-gradient(135deg, ${a}, ${b})`, boxShadow: `inset 0 0 0 3px ${bg}` }}
+                      aria-hidden="true"
+                    />
+                    <span className="theme-name">{t.name}</span>
+                    <span className="theme-desc">{t.description}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+      <label className="theme-motion">
+        <input type="checkbox" checked={motion} onChange={(event) => setMotion(event.target.checked)} />
+        <span>
+          Background motion <span className="muted">(Animated themes)</span>
+        </span>
+      </label>
+    </>
   )
 }

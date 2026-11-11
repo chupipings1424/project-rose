@@ -122,8 +122,8 @@ works everywhere and nothing secret is in the JavaScript bundle.
 ## Themes
 
 Pick a theme on the login page or from the top bar. It is saved in your browser.
-Backgrounds are **static** (no looping animation, no sound), so ROSE stays light on CPU
-and GPU.
+Most backgrounds are **static** (no looping animation, no sound), so ROSE stays light on CPU
+and GPU. Only the **Animated** group moves, and its code is downloaded only when you pick one.
 
 | Group | Theme | Look |
 | --- | --- | --- |
@@ -136,7 +136,17 @@ and GPU.
 | Modern | Rose Dusk | warm plum with rose pink and gold |
 | Modern | Nordic Frost | muted slate with icy cyan and sage (easiest on the eyes) |
 | Modern | Paper Sage | warm paper with sage green and terracotta (light) |
+| Modern | Liquid Glass | iPhone-style frosted glass cards and pill buttons on a still, colourful wallpaper (light) |
+| Animated | Particle Mesh | a slow constellation (canvas); on a laptop the dots move away from your mouse |
+| Animated | Day / Night | follows your clock: dawn, blue sky with clouds, sunset, then stars and a moon |
+| Animated | Isometric | light theme with floating low-poly cubes and pyramids (SVG) |
+| Animated | Rose Bloom | rose-gold glow with petals drifting down |
 | Retro | Retro 8-bit | handheld-console greens, monospace type and square corners (light) |
+
+**Background motion.** Untick *Background motion* under the theme cards (or press the ❚❚ button
+next to the theme menu in the top bar) to freeze an Animated theme. It is remembered per device.
+If your phone or computer has *Reduce motion* turned on, the animations stay still anyway.
+On phones the Particle Mesh draws fewer dots at about 30 fps, and Rose Bloom drops fewer petals.
 
 ## Currency
 
@@ -316,7 +326,8 @@ src/
                         session (30 days + admin / must-change-password flags),
                         AuthProvider, ProtectedRoute (+ AdminRoute)
   admin/usersApi.ts     the admin API client + temporary password generator
-  theme/                10 themes (5 futuristic, 4 modern, 1 retro), ThemeProvider, ThemePicker
+  theme/                15 themes (5 futuristic, 5 modern, 4 animated, 1 retro), ThemeProvider, ThemePicker
+    animated/           lazy-loaded moving backgrounds (canvas mesh, day/night sky, SVG shapes, petals)
   currency/             display currency (? PHP default, $ USD, A$ AUD, ? EUR)
   components/           shared UI: AppShell, Modal, toasts, stat tiles, states
   hooks/                useAsync, useAutoRefresh, useDebouncedValue, useNow

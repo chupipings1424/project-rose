@@ -1,4 +1,4 @@
-export type ThemeGroup = 'futuristic' | 'modern' | 'retro'
+export type ThemeGroup = 'futuristic' | 'modern' | 'animated' | 'retro'
 
 export interface ThemeDefinition {
   id: string
@@ -87,6 +87,46 @@ export const THEMES = [
     swatch: ['#f7f5f0', '#4f7c6b', '#c0794f'],
   },
   {
+    id: 'glass',
+    group: 'modern',
+    name: 'Liquid Glass',
+    description: 'Frosted iPhone-style glass on a colourful wallpaper',
+    mode: 'light',
+    swatch: ['#f4f7fd', '#007aff', '#ff6fb5'],
+  },
+  {
+    id: 'mesh',
+    group: 'animated',
+    name: 'Particle Mesh',
+    description: 'A slow constellation that moves away from your mouse',
+    mode: 'dark',
+    swatch: ['#050a16', '#2dd4bf', '#60a5fa'],
+  },
+  {
+    id: 'daynight',
+    group: 'animated',
+    name: 'Day / Night',
+    description: 'Sunrise, clouds, sunset and stars - follows your clock',
+    mode: 'dark',
+    swatch: ['#0b1233', '#3d8ef0', '#f99d5a'],
+  },
+  {
+    id: 'isometric',
+    group: 'animated',
+    name: 'Isometric',
+    description: 'Light theme with floating low-poly shapes',
+    mode: 'light',
+    swatch: ['#eef1f8', '#4f46e5', '#f59e0b'],
+  },
+  {
+    id: 'bloom',
+    group: 'animated',
+    name: 'Rose Bloom',
+    description: 'Rose-gold glow with petals drifting down',
+    mode: 'dark',
+    swatch: ['#1a0c14', '#f48fb1', '#e8b48a'],
+  },
+  {
     id: 'retro',
     group: 'retro',
     name: 'Retro 8-bit',
@@ -99,6 +139,7 @@ export const THEMES = [
 export const THEME_GROUPS: readonly { id: ThemeGroup; label: string }[] = [
   { id: 'futuristic', label: 'Futuristic' },
   { id: 'modern', label: 'Modern' },
+  { id: 'animated', label: 'Animated' },
   { id: 'retro', label: 'Retro' },
 ]
 
@@ -107,8 +148,14 @@ export type ThemeId = (typeof THEMES)[number]['id']
 
 export const DEFAULT_THEME: ThemeId = 'neon'
 export const THEME_STORAGE_KEY = 'rose.theme'
+/** 'off' pauses the animated backgrounds; anything else (or nothing) means on. */
+export const MOTION_STORAGE_KEY = 'rose.motion'
 
 /** A type guard: when it returns true, TypeScript knows `value` is a ThemeId. */
 export function isThemeId(value: unknown): value is ThemeId {
   return THEMES.some((theme) => theme.id === value)
+}
+
+export function themeGroupOf(id: ThemeId): ThemeGroup {
+  return THEMES.find((theme) => theme.id === id)?.group ?? 'futuristic'
 }

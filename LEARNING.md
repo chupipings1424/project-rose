@@ -279,7 +279,9 @@ while you were only reading a table. Now:
 - `@media (prefers-reduced-motion: reduce)` turns even those off.
 
 Rule of thumb: an `animation: ... infinite` costs power for as long as the page is open.
-Use motion to answer something the user did, not as decoration.
+Use motion to answer something the user did, not as decoration. The exception is the
+opt-in **Animated** theme group (section 22): it moves only if you pick it, and it can be
+paused.
 
 ---
 
@@ -771,6 +773,44 @@ printable page, both relative to `/projects/loans/*` in `App.tsx`.
 is built on the server with ClosedXML (`LoanReportWriter.cs`), including real `SUM`
 formulas. The test stubs `window.print` with `vi.stubGlobal('print', vi.fn())`.
 
+## 22. Animated themes and Liquid Glass: smooth motion on a phone
+
+**Animate only `transform` and `opacity`.** The browser can move, rotate and fade a layer on
+the GPU without repainting it. Animating `top`, `width` or `box-shadow` makes it repaint every
+frame, which is what makes phones stutter. Clouds, petals and isometric shapes all use
+`transform`; stars twinkle with `opacity` (`src/theme/animated/animated.css`).
+
+**Two elements, two animations.** A petal's outer `<div>` falls, its inner `<i>` sways. Each
+has one simple `@keyframes`, and together they look natural. A *negative* `animation-delay`
+starts a loop part-way through, so petals are already falling when the page opens.
+
+**Canvas for many moving things.** The Particle Mesh draws dozens of dots and lines into one
+`<canvas>` with `requestAnimationFrame` (which pauses by itself in a hidden tab). The maths
+lives in `mesh.ts` as pure functions (`pointCount`, `createPoints`, `stepPoints`) so
+`mesh.test.ts` can test it without a canvas. The `useEffect` sets things up and its cleanup
+cancels the frame loop and removes the listeners - otherwise switching themes would leak them.
+
+**Adapt to the device with media queries in JS.** `device.ts` uses `matchMedia`:
+`(pointer: coarse)` means a touch screen (fewer dots, 30 fps), `(hover: hover) and
+(pointer: fine)` means a real mouse (dots move away from it), and `(prefers-reduced-motion:
+reduce)` is the accessibility setting we always respect.
+
+**Pause without React.** The Motion switch only sets `<html data-motion="off">`; one CSS rule
+(`animation-play-state: paused`) freezes every animation. The canvas reads `motion` from the
+theme context and draws a single still frame instead.
+
+**Load it only when needed.** `Background.tsx` uses `React.lazy(() => import(...))` +
+`<Suspense>`, so the animated code *and its CSS* are a separate file that only people who pick
+an Animated theme download. `index.html` sets `data-theme`, `data-theme-group` and `data-phase`
+before React starts, so the colours never flash.
+
+**Liquid Glass.** `backdrop-filter: blur() saturate()` blurs whatever is *behind* an element.
+It is the most expensive effect here, so the wallpaper under it is still (like on an iPhone)
+and the glass is only used on cards, the top bar, dialogs and the + button - not on every
+button. The bright rim is a `::before` gradient with a `mask` that keeps only the 1px border.
+True refraction (bending the background) needs SVG filters that Safari does not support in
+`backdrop-filter`, so the edges imitate it with highlights.
+
 ---
 
 ## Exercises (easy → harder)
@@ -805,3 +845,6 @@ formulas. The test stubs `window.print` with `vi.stubGlobal('print', vi.fn())`.
 16. Loans: add an optional "first payment date" for loans whose first deduction is not
     exactly one month later. Write the failing case in `LoanRulesTests.cs` first, add the
     column with a migration, then the form field (sections 18, 21).
+17. Themes: add a fifth Animated theme, "Snow", with falling dots like `RosePetals.tsx`. Add it
+    to `THEMES`, `AnimatedScene` and the `groups` list in `index.html`, then extend
+    `ThemePicker.test.tsx` (section 22).
