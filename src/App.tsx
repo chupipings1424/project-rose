@@ -16,6 +16,7 @@ const BudgetApp = lazy(() => import('./projects/budget/BudgetApp'))
 const RemindersApp = lazy(() => import('./projects/reminders/RemindersApp'))
 const SavingsApp = lazy(() => import('./projects/savings/SavingsApp'))
 const HabitsApp = lazy(() => import('./projects/habits/HabitsApp'))
+const LoansApp = lazy(() => import('./projects/loans/LoansApp'))
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'))
 const TodayPage = lazy(() => import('./today/TodayPage'))
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="/projects/reminders/*" element={<RemindersApp />} />
               <Route path="/projects/savings/*" element={<SavingsApp />} />
               <Route path="/projects/habits/*" element={<HabitsApp />} />
+              <Route path="/projects/loans/*" element={<LoansApp />} />
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<AdminUsersPage />} />
               </Route>

@@ -1,6 +1,10 @@
 import { BUDGET_BASE } from './budget/paths'
+import { shortDate } from '../lib/format'
 import { habitsApi } from './habits/api/client'
 import { HABITS_BASE } from './habits/paths'
+import { loansApi } from './loans/api/client'
+import { summarize as summarizeLoans } from './loans/lib/summary'
+import { LOANS_BASE } from './loans/paths'
 import { TRACKER_BASE } from './payment-tracker/paths'
 import { remindersApi } from './reminders/api/client'
 import { friendlyTime } from './reminders/lib/time'
@@ -123,6 +127,23 @@ export const PROJECTS: ProjectInfo[] = [
         { label: 'Done today', value: `${habits.filter((h) => h.doneToday).length} / ${habits.length}` },
         { label: 'Top streak', value: `${Math.max(0, ...habits.map((h) => h.currentStreak))} days` },
         { label: 'Habits', value: String(habits.length) },
+      ]
+    },
+  },
+  {
+    id: 'loans',
+    name: 'Loan Tracker',
+    tagline: 'Coop \u00B7 Pag-IBIG \u00B7 SSS',
+    description:
+      'Enter a loan once - its monthly payments count themselves on the loan date, with balance, finish date and a report.',
+    path: LOANS_BASE,
+    icon: '\u25A4',
+    loadStats: async () => {
+      const summary = summarizeLoans(await loansApi.list())
+      return [
+        { label: 'Balance', amount: summary.balance },
+        { label: 'Loans', value: String(summary.running) },
+        { label: 'Next due', value: summary.nextDue ? shortDate(summary.nextDue) : 'None' },
       ]
     },
   },

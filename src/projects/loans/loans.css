@@ -1,0 +1,113 @@
+/* Loan Tracker (Project 06). Reuses the global card / form / badge / stat / table styles. */
+.loans {
+  display: grid;
+  gap: 1.25rem;
+}
+.loans .tracker-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.loans .tracker-title {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+}
+.loans .tracker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.loans .stats {
+  margin: 0;
+}
+
+.loan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1rem;
+}
+.loan-card {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+.loan-card.is-completed {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+}
+.loan-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+}
+.loan-name {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.loan-amounts {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.loan-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  margin: 0;
+}
+.loan-dates {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+}
+.loan-dates dt {
+  color: var(--muted);
+}
+.loan-dates dd {
+  margin: 0;
+  font-weight: 600;
+}
+.loan-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+.loan-spacer {
+  flex: 1;
+}
+.loan-preview {
+  margin: 0;
+}
+.loan-schedule tr.is-next td {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-weight: 600;
+}
+
+@media print {
+  .loan-report {
+    gap: 0.75rem;
+  }
+  .loan-report table {
+    font-size: 9pt;
+  }
+  .loan-report th,
+  .loan-report td,
+  .loan-report .muted {
+    color: #000;
+  }
+  /* A long schedule may run over a page; only keep the heading with it. */
+  .loan-report .loan-report-loan {
+    break-inside: auto;
+  }
+  .loan-report .section-title {
+    break-after: avoid;
+  }
+  .loan-report .table-wrap {
+    overflow: visible;
+  }
+}

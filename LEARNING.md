@@ -745,6 +745,32 @@ An iPhone Shortcut (Siri dictation → URL encode → open the link) and an Andr
 `CommandBar` previews `initialText` in an effect guarded by a `useRef`, because React's
 StrictMode runs effects twice in development.
 
+## 21. Loan Tracker: derived state, date edge cases and printing
+
+**Store facts, derive the rest.** A loan row keeps only what you typed (loan date, term,
+amortization, amount). Paid months, balance, next due date and finish date are *calculated*
+from today in `LoanRules.cs` every time you read them. Storing "payments made" would need a
+background job to bump it every month, and it could drift; deriving it can't. It is the same
+idea as `useMemo` in React: never keep a second copy of something you can compute.
+
+**Dates are tricky.** `DateOnly.AddMonths` keeps the day when it can and clamps when it
+can't: Jan 31 + 1 month = Feb 28 (or 29), but Jan 31 + 2 months = Mar 31 again, because each
+due date is computed from the *loan date*, not from the previous due date. The xUnit tests in
+`LoanRulesTests.cs` pin these cases down (the 31st, the loan date itself, a payment due today).
+
+**Wire format vs. app format.** The API speaks snake_case (`monthly_amortization`); the
+components use camelCase. `loans/api/client.ts` converts both ways (`fromDto` / `toDto`), so
+no component ever sees the wire names.
+
+**Nested routes.** `LoansApp` has its own `<Routes>`: `index` is the list and `report` the
+printable page, both relative to `/projects/loans/*` in `App.tsx`.
+
+**PDF without a PDF library.** The report page is plain HTML; *Save as PDF* calls
+`window.print()`. `@media print` rules (global.css + loans.css) hide everything marked
+`no-print`, switch to black on white and let long tables break across pages. The Excel file
+is built on the server with ClosedXML (`LoanReportWriter.cs`), including real `SUM`
+formulas. The test stubs `window.print` with `vi.stubGlobal('print', vi.fn())`.
+
 ---
 
 ## Exercises (easy → harder)
@@ -776,3 +802,6 @@ StrictMode runs effects twice in development.
     item). Add the failing case to `parse.test.ts` first (section 20).
 15. Outbox: show how long an entry has waited ("2 hours ago") in `SyncStatus`, and add a
     test with `vi.useFakeTimers()` (section 20).
+16. Loans: add an optional "first payment date" for loans whose first deduction is not
+    exactly one month later. Write the failing case in `LoanRulesTests.cs` first, add the
+    column with a migration, then the form field (sections 18, 21).

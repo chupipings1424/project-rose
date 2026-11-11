@@ -13,6 +13,7 @@ Sign in with your email and password, pick a theme and launch your projects:
 | 03 | **Reminders** | Repeat rules and **Web Push** notifications on phone and PC |
 | 04 | **Savings Goals** | Goals with deposits/withdrawals, the amount needed per month, a pace forecast and an SVG chart |
 | 05 | **Habit Tracker** | Check or count habits, streaks, a 12-week heatmap, optimistic ticks (`useReducer`) and daily nudges |
+| 06 | **Loan Tracker** | Coop / Pag-IBIG / SSS loans whose monthly payments count themselves, a schedule and an Excel + PDF report |
 
 **Tech:** React 19, TypeScript (strict), Vite, React Router, Recharts, Supabase Auth
 (supabase-js), Vitest + Testing Library, oxlint, Service Workers, PWA manifest.
@@ -274,6 +275,24 @@ Give a habit a **nudge time** and, if it is still not done by then, ROSE sends a
 notification to the devices that turned notifications on in Reminders. One nudge per day
 at most.
 
+## Loan Tracker (Project 06)
+
+Enter a loan once: **name**, **type** (Coop, Pag-IBIG, SSS, GSIS, Bank, Salary loan,
+Personal, Other), **loan date**, **term** in months, **monthly amortization** and **loan
+amount**. There is nothing to tick: every month, on the loan date's day, that month's
+payment counts as **paid** automatically (salary deduction).
+
+- The first payment is **one month after the loan date** (loan on April 2 → payments on
+  May 2, June 2...). A loan dated the 31st pays on the last day of shorter months.
+- Total to pay = amortization × term; balance = total − paid; interest = total − loan amount.
+- Old loans work too: enter the real loan date and the past months are filled in.
+- Each card shows the balance, *X of N paid*, the next due date and the expected finish.
+  *Schedule* lists every month as Paid / Next / Upcoming. Finished loans move to **Completed**.
+- **Report** shows a summary and every schedule. *Download Excel* gets `loans.xlsx` from
+  the API; *Save as PDF* opens the print screen (on a phone, use Share / Save to Files).
+
+The loan maths lives in the API (`LoanRules.cs`), so the UI only displays it.
+
 ## Scripts
 
 | Command | What it does |
@@ -318,6 +337,7 @@ src/
     reminders/          Reminders page, form, model.ts (types), push opt-in (lib/push.ts)
     savings/            Savings Goals page, goal/entry forms, SVG chart (lib/chart.ts)
     habits/             Habit Tracker page, reducer (lib/reducer.ts), heatmap, 7-day strip
+    loans/              Loan Tracker: list + printable report pages (nested routes), schedule
   styles/global.css     design system + theme CSS variables
 public/
   sw.js                 service worker: push notifications + offline cache (app + GET /api/*)
